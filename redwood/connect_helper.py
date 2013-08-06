@@ -4,11 +4,14 @@ from mysql.connector.constants import ClientFlag
 
 def get_connection(config_file):
 
+    cnx = None
+
     try:
         with open(config_file): pass
     except IOError:
         print ('Configuration file \'{}\' not found. Please create the file '
                 'in the local directory. Refer to README for required values'.format(config_file))
+        return cnx
 
     config = ConfigParser.RawConfigParser()
     config.read(config_file)
@@ -31,6 +34,5 @@ def get_connection(config_file):
         else:
             print(err)
    
-    
     return cnx
 
