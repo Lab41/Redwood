@@ -1,6 +1,3 @@
-DROP SCHEMA IF EXISTS `redwood`;
-CREATE SCHEMA `redwood` ;
-use `redwood`
 
 CREATE TABLE IF NOT EXISTS `media_source` (
     `id` INT NOT NULL AUTO_INCREMENT,
