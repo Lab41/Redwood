@@ -2,8 +2,9 @@ import sys
 import os
 import getopt
 import string
+import time
 from datetime import datetime
-
+import MySQLdb
 
 def db_load_file(connection, path):
 
@@ -23,38 +24,81 @@ def db_load_file(connection, path):
         print "Error: Improper naming scheme"
         return
     cursor = connection.cursor()
+    os_id = None
 
-    date_object = datetime.strptime(fields[0], '%m%d%Y')
 
-    data_media_source = {
 
-        'name':fields[2],
-        'date_acquired':date_object.isoformat(),
-        'os':fields[1],
-    }
-
-    #add the media source
-    add_media_source = ("INSERT INTO `media_source` (reputation, name, date_acquired, os) "
-                        "VALUES(0, '%(name)s', '%(date_acquired)s', '%(os)s') ") % data_media_source
-    
+    #transaction for adding to media and os tables. Both succeed or both fail
     try:
+
+        data_os = {
+            'name':fields[1],
+        }
+
+        #add os 
+        add_os = ("INSERT INTO `os` (name) VALUES('%(name)s') ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)") % data_os
+        
+        cursor.execute(add_os)
+        
+        connection.commit()
+
+    
+        
+    except MySQLdb.Error, e:
+        if connection:
+            connection.rollback()                       
+            print "Error %d: %s" % (e.args[0],e.args[1])
+            return                                        
+
+    os_id = cursor.lastrowid
+    
+    if(os_id is None):
+        print "Unable to find corresponding os"
+        return
+
+    try:
+        date_object = datetime.strptime(fields[0], '%m%d%Y')
+
+        data_media_source = {
+
+            'name':fields[2],
+            'date_acquired':date_object.isoformat(),
+            'os_id':os_id,
+        }
+
+        #add the media source
+        add_media_source = ("INSERT INTO `media_source` (reputation, name, date_acquired, os_id) "
+                            "VALUES(0, '%(name)s', '%(date_acquired)s', '%(os_id)s') ") % data_media_source
+        
         cursor.execute(add_media_source)
         connection.commit()
-    except Exception as err:
-        print(err)
-        cursor.close()
-        return
+
+    except MySQLdb.Error, e:
+        if connection:
+            connection.rollback()                       
+            print "Error %d: %s" % (e.args[0],e.args[1])
+            return                                        
 
     media_source_id = cursor.lastrowid
     
+      
+
     #load raw csv into the staging table from the client
-    add_staging_table = ("LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table` FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n';").format(path)
-   
+    add_staging_table = ("LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table` "
+                         "FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' "
+                         "IGNORE 1 LINES "
+                         "(contents_hash, @dirname, basename,inode,device,"
+                         "permissions,user_owner,group_owner,last_accessed,last_modified,"
+                         "last_changed,inode_birth,user_flags,links_to_file,size) "
+                         "SET dirname = @dirname, dirname_hash = SHA1(@dirname);").format(path)
+  
+
     try:
         
+        print "##################"
         cursor.execute(add_staging_table)
         connection.commit() 
-        cursor.callproc('map_staging_table', (media_source_id,))
+        cursor.callproc('map_staging_table', (media_source_id, os_id))
         cursor.execute("DELETE FROM `staging_table`;")
         connection.commit()
    

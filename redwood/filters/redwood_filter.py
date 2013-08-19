@@ -11,7 +11,8 @@ class RedwoodFilter(object):
     def sortAsClusters(self, code, sql_results, num_clusters):
        
         combined = list()
-        for c, r in zip(sql_results, code):
+
+        for r, c in zip(sql_results, code):
             combined.append((c, r))
       
         return sorted(combined, key=lambda tup: tup[0])

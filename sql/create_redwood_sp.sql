@@ -1,14 +1,14 @@
 DROP PROCEDURE IF EXISTS map_staging_table;
 
 DELIMITER //
-CREATE PROCEDURE map_staging_table(IN source_id INT)
+CREATE PROCEDURE map_staging_table(IN source_id INT, IN os_id INT)
     BEGIN
         INSERT INTO `unique_file` (hash)
-			SELECT DISTINCT hash
+			SELECT DISTINCT contents_hash
 			FROM `staging_table`
 		ON DUPLICATE KEY UPDATE prevalence_count = prevalence_count + 1;
 		INSERT IGNORE INTO `unique_path` (full_path, path_hash)
-			SELECT full_path, path_hash
+			SELECT dirname, dirname_hash
 			FROM `staging_table`;
 		INSERT IGNORE INTO `file_metadata` 
 			(unique_file_id,
@@ -26,29 +26,31 @@ CREATE PROCEDURE map_staging_table(IN source_id INT)
 			created,
 			user_flags,
 			links_to_file,
-			size)
+			size,
+                        os_id)
 		SELECT 
 			unique_file.id,
 			source_id,
 			unique_path.id,
-			staging_table.file_name,
+			staging_table.basename,
 			staging_table.inode,
-			staging_table.device_id,
+			staging_table.device,
 			staging_table.permissions,
 			staging_table.user_owner,
 			staging_table.group_owner,
 			FROM_UNIXTIME(staging_table.last_accessed),
 			FROM_UNIXTIME(staging_table.last_modified),
 			FROM_UNIXTIME(staging_table.last_changed),
-			FROM_UNIXTIME(staging_table.created),
+			FROM_UNIXTIME(staging_table.inode_birth),
 			staging_table.user_flags,
 			staging_table.links_to_file,
-			staging_table.size
+			staging_table.size,
+                        os_id
 		FROM `staging_table`
 			LEFT JOIN  `unique_file`
-			ON (staging_table.hash = unique_file.hash)
+			ON (staging_table.contents_hash = unique_file.hash)
 			LEFT JOIN `unique_path`
-			ON (staging_table.path_hash = unique_path.path_hash);
+			ON (staging_table.dirname_hash = unique_path.path_hash);
     END //
 DELIMITER ;
 
