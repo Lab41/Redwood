@@ -13,12 +13,29 @@ This project implements statistical methods to assist in identifying anomalous f
 ##Setup
 
 ###Datbases
+First create the database
+
 From the Redwood directory, run
 ```
 mysql -uyour_db_user -pyour_password -hyour_host < sql/create_redwood_db.sql
 mysql -uyour_db_user -pyour_password -hyour_host < sql/create_redwood_sp.sql
 ```
 
+###Run Redwood
+write a connection config
+```
+[mysqld]
+database:your_db_name
+host:your_host
+username:your_username
+password:your_password
+```
+
+Then, start the application, specifying the config you just created
+
+```
+python redwood.py /path/to/connection/config
+```
 
 ###Obtain Data
 
