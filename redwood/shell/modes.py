@@ -4,7 +4,6 @@ import getopt
 import string
 import exceptions
 import redwood.filters
-import redwood.io.connect_helper as conn
 import redwood.io.csv_importer as csv_load
 from redwood.filters import plugins
 
