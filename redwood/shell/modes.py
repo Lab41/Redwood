@@ -45,14 +45,13 @@ class DiscoverMode(GeneralMode):
     def __init__(self, cnx, plugin, controller):
         super(DiscoverMode, self).__init__(cnx, controller)
         self.plugin = plugin
-        self.prompt = '\033[1;32mredwood-{}-dicover$ \033[1;m'.format(plugin.name)
+        self.prompt = '\033[1;32mredwood-{}-discover$ \033[1;m'.format(plugin.name)
         self.plugin.cnx = cnx
     def run(self, args = None):
         
         if(len(args) > 0):
             try:
                 method = "discover_{}".format(args[0])
-                dir(self.plugin)
                 f = self.plugin.__getattribute__(method)
                 f(*args[1:])
             except TypeError as e:
@@ -90,14 +89,14 @@ class FilterMode(GeneralMode):
             return
         self.controller.pushMode(DiscoverMode(self.cnx, plugins[v],  self.controller))     
 
-    def display(cnx, args=None):
-        global curr_filter_index
-        plugin = plugins[curr_filter_index]
-        plugin.display()
-    def run(cnx, args = None):
-        global curr_filter_index
-        plugin = plugins[curr_filter_index]
-        plugin.run(cnx)
+    def run(self, args = None):
+        if(len(args) != 1):
+            print "Error: Filter Id required"
+            return
+        v = GeneralMode.validateFilterId(args[0])
+        plugin = plugins[v]
+        plugin.cnx = self.cnx
+        plugin.run()
     def list(self, args=None):
         print "Available Filters"
         i = 0

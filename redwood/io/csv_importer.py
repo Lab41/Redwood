@@ -18,7 +18,7 @@ def db_load_file(connection, path):
     print "Loading: {}...".format(path)
 
     filename = os.path.basename(path)
-    fields = string.split(filename, '-')
+    fields = string.split(filename, '--')
 
     if(len(fields) != 3):
         print "Error: Improper naming scheme"
@@ -37,7 +37,7 @@ def db_load_file(connection, path):
 
         #add os 
         add_os = ("INSERT INTO `os` (name) VALUES('%(name)s') ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)") % data_os
-        
+
         cursor.execute(add_os)
         
         connection.commit()
@@ -57,7 +57,7 @@ def db_load_file(connection, path):
         return
 
     try:
-        date_object = datetime.strptime(fields[0], '%m%d%Y')
+        date_object = datetime.strptime(fields[0], '%Y-%m-%d')
 
         data_media_source = {
 
@@ -81,20 +81,20 @@ def db_load_file(connection, path):
 
     media_source_id = cursor.lastrowid
     
-      
 
+    path = path.replace('\\','\\\\')
     #load raw csv into the staging table from the client
     add_staging_table = ("LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table` "
                          "FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' "
                          "IGNORE 1 LINES "
-                         "(contents_hash, @dirname, basename,inode,device,"
-                         "permissions,user_owner,group_owner,last_accessed,last_modified,"
-                         "last_changed,inode_birth,user_flags,links_to_file,size) "
+                         "(contents_hash, @dirname, parent_id, basename, filesystem_id, device_id,"
+                         "attributes, user_owner, group_owner, size, created, last_accessed, last_modified,"
+                         "last_changed, user_flags, links_to_file, disk_offset, entropy, file_content_status,"
+                         "extension, file_type) "
                          "SET dirname = @dirname, dirname_hash = SHA1(@dirname);").format(path)
-  
+
 
     try:
-        
         print "##################"
         cursor.execute(add_staging_table)
         connection.commit() 
@@ -108,7 +108,7 @@ def db_load_file(connection, path):
         return
     
     total_time =  time.time() - start_time
-    print "Completed import of {} in ".format(path, total_time)
+    print "Completed import of {} in {}".format(path, total_time)
     cursor.close()
 
 def run(cnx, path):
@@ -116,16 +116,16 @@ def run(cnx, path):
     if(path == None):
         print "Path is required"
         return
-
+    print path
     if(os.path.isfile(path)):
         db_load_file(cnx, path)
-#    elif(os.path.isDir(path)):
-#        for r, d, f in os.walk(path):
-#            while d > 0:
-#                d.pop()
-#            for file in f:
-#                if not file.startswith('.'):
-#                    os.path.abspath(os.path.join(r, file))
-#                    db_load_file(connection, input_dir + "/" + file)
+    elif(os.path.isdir(path)):
+        for r, d, f in os.walk(path):
+            while len(d) > 0:
+                d.pop()
+            for file in f:
+                if not file.startswith('.'):
+                    os.path.abspath(os.path.join(r, file))
+                    db_load_file(cnx, path + "/" + file)
     else:
         print 'Please input a valid file or a directory for import'
