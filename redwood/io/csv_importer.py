@@ -66,6 +66,8 @@ def db_load_file(connection, path):
             'os_id':os_id,
         }
 
+
+
         #add the media source
         add_media_source = ("INSERT INTO `media_source` (reputation, name, date_acquired, os_id) "
                             "VALUES(0, '%(name)s', '%(date_acquired)s', '%(os_id)s') ") % data_media_source
@@ -86,18 +88,14 @@ def db_load_file(connection, path):
     #load raw csv into the staging table from the client
     add_staging_table = ("LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table` "
                          "FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' "
-                         "IGNORE 1 LINES "
-                         "(contents_hash, @dirname, parent_id, basename, filesystem_id, device_id,"
-                         "attributes, user_owner, group_owner, size, created, last_accessed, last_modified,"
-                         "last_changed, user_flags, links_to_file, disk_offset, entropy, file_content_status,"
-                         "extension, file_type) "
-                         "SET dirname = @dirname, dirname_hash = SHA1(@dirname);").format(path)
+                         "IGNORE 1 LINES;").format(path)
 
 
     try:
         print "##################"
         cursor.execute(add_staging_table)
         connection.commit() 
+        return
         cursor.callproc('map_staging_table', (media_source_id, os_id))
         cursor.execute("DELETE FROM `staging_table`;")
         connection.commit()

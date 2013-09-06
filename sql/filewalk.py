@@ -8,6 +8,8 @@ import binascii
 import os
 import re
 from Queue import Queue
+import mimetypes
+import urllib
 
 # 8 byte unique ID generator give a path.
 #   - first five bytes are first five from sha1 of path name
@@ -23,30 +25,21 @@ def generateUniqueId(path):
     return  long(binascii.hexlify(combined), 16) 
 
 
-def write_stat_info(basename, dirname, file_id,  parent_id, file_handle):
-   
+def write_stat_info(basename, dirname, file_id,  parent_id, dirname_digest, file_handle):
     path = dirname + '/' + basename
+   
     try:
         stat_obj = os.stat(path)
     except Exception:
-        print "Error trying to stat {}".format(path)
+        #print "Error trying to stat {}".format(path)
         return
 
-    p = subprocess.Popen(['file', '-b', '--mime-type', path], stdout=subprocess.PIPE)
-    p.wait()
-    file_type = p.stdout.read().rstrip()
-    hash_val = ""
-    if(os.path.isdir(path) != True and file_type != 'inode/chardevice' \
-            and file_type != 'inode/symlink' \
-            and file_type != 'inode/socket' \
-            and file_type != 'inode/blockdevice' \
-            and file_type != 'inode/x-empty' \
-            and file_type != 'application/x-coredump'):
-    
-        hash_val = hash_file(path)
-   
+    url = urllib.pathname2url(path)
+    file_type = mimetypes.guess_type(url)[0]
+    hash_val = hash_file(path, file_type)
     data = {\
             'hash':hash_val, \
+            'dir_hash':dirname_digest, \
             'file_id':file_id, \
             'dirname':dirname, \
             'parent_id':parent_id, \
@@ -71,7 +64,7 @@ def write_stat_info(basename, dirname, file_id,  parent_id, file_handle):
            }
   
     file_handle.write("{file_id:d},{parent_id:d},{dirname:s},{filename:s},{hash},"
-            "{inode:d},{device:d},{permissions:s},{uid:d},{gid:g},{size:d},"
+            "{dir_hash:s},{inode:d},{device:d},{permissions:s},{uid:d},{gid:g},{size:d},"
             "{create_time:d},{access_time:d},{mod_time:d},{metadata_change_time:d},"
             "{user_flags:s},{links:d},{disk_offset},{entropy},"
             "{file_content_status},{extension:s},{file_type:s}\n".format(**data))
@@ -79,34 +72,49 @@ def write_stat_info(basename, dirname, file_id,  parent_id, file_handle):
 
 BUFFER = 4096
 
-def hash_file(fpath):
-    
-    h = hashlib.sha1()
+def hash_file(path, file_type):
 
-    with open(fpath, 'r') as f:
-        data = f.read(BUFFER)
-        while(len(data)>0):
-            h.update(data)
+    ret = ""
+    #some files you can't hash
+    if(file_type == 'inode/chardevice' \
+            or file_type == 'inode/symlink' \
+            or file_type == 'inode/socket' \
+            or file_type == 'inode/blockdevice' \
+            or file_type == 'inode/x-empty' \
+            or file_type == 'application/x-coredump' \
+            or file_type == 'inode/directory'):
+        return ret
+   
+    try:
+        h = hashlib.sha1()
+
+        with open(path, 'r') as f:
             data = f.read(BUFFER)
-    f.close()
-    return h.hexdigest()
+            while(len(data)>0):
+                h.update(data)
+                data = f.read(BUFFER)
+            ret = h.hexdigest()
+        f.close()
+    except Exception, err:
+        #print "Hash Error: {} on file {} with type {}".format(err, path, file_type)
+        return ret 
+    return ret
     
 
 
 
 def main(argv):
 
-    if(len(argv) != 3):
-        print "filewalk.py <directory> <unique-source-id>"
+    if(len(argv) != 4):
+        print "filewalk.py <directory> <os> <source>"
         return
 
     today = datetime.date.today()
-    str_date = today.strftime('%d-%m-%Y')
-    out_file = "{}-redwood.csv".format(str_date) 
+    str_date = today.strftime('%Y-%m-%d')
+    out_file = "{}--{}--{}".format(str_date, argv[2], argv[3]) 
     start_dir = argv[1]
     
     queue = Queue()
-
 
     with open(out_file, "w") as file_handle:
         
@@ -116,26 +124,30 @@ def main(argv):
 
         #start the queue with a 0 value
         queue.put(0L) 
-        
+       
         for root, dirs, files in os.walk(start_dir):
-            
-            parent_id = queue.get()
-
-            #optimization to skip proc fs 
-            if(root.startswith('/proc')):
-                continue
-
+       
+            parent_id = queue.get() 
             new_parent_id = generateUniqueId(root)
-            
-            #write the parent directory
-            write_stat_info("/", root,  new_parent_id, parent_id, file_handle)
-            
+           
             for d in dirs:
                 queue.put(new_parent_id)
 
+            #optimization to skip proc fs 
+            if(root.startswith('/proc') or root.startswith('/sys') or root.startswith('/dev')):
+                continue
+            
+            h = hashlib.sha1()
+            h.update(root)
+            root_digest = h.hexdigest()
+
+
+
+            #write the parent directory
+            write_stat_info("/", root,  new_parent_id, parent_id, root_digest, file_handle)
             for f in files:
                 _id = generateUniqueId(f)
-                write_stat_info(f, root, _id, new_parent_id, file_handle)
+                write_stat_info(f, root, _id, new_parent_id, root_digest, file_handle)
 
     file_handle.close()
 

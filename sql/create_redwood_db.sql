@@ -1,4 +1,4 @@
-USE `redwoodDB2`;
+USE `redwood`;
 
 CREATE TABLE IF NOT EXISTS os (
     id INT NOT NULL AUTO_INCREMENT,
@@ -89,27 +89,28 @@ CREATE TABLE IF NOT EXISTS file_metadata (
 )  ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS staging_table (
-    contents_hash CHAR(40) NULL,
+    global_file_id LONG NOT NULL,
+    parent_id LONG NULL,
     dirname VARCHAR(4096) NULL,
-    dirname_hash CHAR(40) NULL,
-	parent_id BIGINT NULL,
     basename VARCHAR(255) NULL,
+    contents_hash CHAR(40) NULL,
+    dirname_hash CHAR(40) NULL,
     filesystem_id MEDIUMTEXT NULL,
     device_id INT NULL,
     attributes INT NULL,
-    user_owner VARCHAR(45) NULL,
-    group_owner VARCHAR(45) NULL,
+    user_owner INT NULL,
+    group_owner INT NULL,
     size MEDIUMTEXT NULL,
-	created DATETIME NULL DEFAULT NULL,
+    created DATETIME NULL DEFAULT NULL,
     last_accessed DATETIME DEFAULT NULL,
     last_modified DATETIME DEFAULT NULL,
     last_changed DATETIME DEFAULT NULL,
     user_flags INT NULL,
     links_to_file INT NULL,
-	disk_offset BIGINT NOT NULL,
+    disk_offset BIGINT NOT NULL,
     entropy TINYINT NOT NULL,
-	file_content_status TINYINT NOT NULL,
-	extension VARCHAR(32) NOT NULL,
-	file_type VARCHAR(64) NOT NULL
+    file_content_status TINYINT NOT NULL,
+    extension VARCHAR(32) NOT NULL,
+    file_type VARCHAR(64) NOT NULL
 
 )  ENGINE=InnoDB;
