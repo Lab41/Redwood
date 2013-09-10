@@ -88,7 +88,14 @@ def db_load_file(connection, path):
     #load raw csv into the staging table from the client
     add_staging_table = ("LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table` "
                          "FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' "
-                         "IGNORE 1 LINES;").format(path)
+                         "IGNORE 1 LINES "
+                         "(global_file_id, parent_id, dirname, basename,contents_hash,dirname_hash,filesystem_id,device_id,"
+                         "attributes,user_owner,group_owner,size,@created_param,@accessed_param,@modified_param,@changed_param,"
+                         "@user_flags,links_to_file, @disk_offset, @entropy, @file_content_status, extension, file_type) "
+                         "SET created = FROM_UNIXTIME(@created_param), last_accessed = FROM_UNIXTIME(@accessed_param),"
+                         "last_modified = FROM_UNIXTIME(@modified_param), last_changed = FROM_UNIXTIME(@changed_param),"
+                         "user_flags = nullif(@user_flags,''), disk_offset = nullif(@disk_offset,''),"
+                         "entropy=nullif(@entropy,''), file_content_status=nullif(@file_content_status,'');").format(path) 
 
 
     try:

@@ -101,16 +101,16 @@ CREATE TABLE IF NOT EXISTS staging_table (
     user_owner INT NULL,
     group_owner INT NULL,
     size MEDIUMTEXT NULL,
-    created DATETIME NULL DEFAULT NULL,
-    last_accessed DATETIME DEFAULT NULL,
-    last_modified DATETIME DEFAULT NULL,
-    last_changed DATETIME DEFAULT NULL,
-    user_flags INT NULL,
+    created DATETIME NULL,
+    last_accessed DATETIME NULL,
+    last_modified DATETIME NULL,
+    last_changed DATETIME NULL,
+    user_flags INT NULL DEFAULT NULL,
     links_to_file INT NULL,
-    disk_offset BIGINT NOT NULL,
-    entropy TINYINT NOT NULL,
-    file_content_status TINYINT NOT NULL,
-    extension VARCHAR(32) NOT NULL,
-    file_type VARCHAR(64) NOT NULL
+    disk_offset BIGINT  NULL,
+    entropy TINYINT  NULL,
+    file_content_status TINYINT NULL,
+    extension VARCHAR(32)  NULL,
+    file_type VARCHAR(64)  NULL
 
 )  ENGINE=InnoDB;

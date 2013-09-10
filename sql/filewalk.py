@@ -120,6 +120,7 @@ def main(argv):
         
         file_handle.write("file_id, parent_id,dirname,basename,hash,fs_id,device,permissions,"
                 "uid,gid,size,create_time,access_time,mod_time,metadata_change_time,"
+                "user_flags,links,disk_offset,entropy,"
                 "file_content_status,extensions,file_type\n")
 
         #start the queue with a 0 value
