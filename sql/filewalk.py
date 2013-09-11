@@ -84,20 +84,22 @@ def hash_file(path, file_type):
             or file_type == 'application/x-coredump' \
             or file_type == 'inode/directory'):
         return ret
-   
+  
+    fd = None
     try:
         h = hashlib.sha1()
-
-        with open(path, 'r') as f:
-            data = f.read(BUFFER)
-            while(len(data)>0):
-                h.update(data)
-                data = f.read(BUFFER)
-            ret = h.hexdigest()
-        f.close()
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        data = os.read(fd, BUFFER)
+        while(len(data)>0):
+            h.update(data)
+            data = os.read(fd, BUFFER)
+        ret = h.hexdigest()
     except Exception, err:
         #print "Hash Error: {} on file {} with type {}".format(err, path, file_type)
-        return ret 
+        pass
+    finally:
+        if(fd != None):
+            os.close(fd)
     return ret
     
 
@@ -149,7 +151,7 @@ def main(argv):
             for f in files:
                 _id = generateUniqueId(f)
                 write_stat_info(f, root, _id, new_parent_id, root_digest, file_handle)
-
+            file_handle.flush()
     file_handle.close()
 
 

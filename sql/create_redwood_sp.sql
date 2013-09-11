@@ -1,4 +1,4 @@
-USE `redwoodDB2`;
+USE `redwood`;
 
 DROP PROCEDURE IF EXISTS map_staging_table;
 
@@ -13,11 +13,12 @@ CREATE PROCEDURE map_staging_table(IN source_id INT, IN os_id INT)
 			SELECT dirname, dirname_hash
 			FROM `staging_table`;
 		INSERT IGNORE INTO `file_metadata` 
-			(unique_file_id,
+			(id,
+                        unique_file_id,
 			source_id,
 			unique_path_id,
-			file_name,
 			parent_id,
+                        file_name,
 			filesystem_id,
 			device_id,
 			attributes,
@@ -36,12 +37,13 @@ CREATE PROCEDURE map_staging_table(IN source_id INT, IN os_id INT)
 			extension,
 			file_type,
 			os_id)
-		SELECT 
+		SELECT
+                        staging_table.global_file_id,
 			unique_file.id,
 			source_id,
 			unique_path.id,
-			staging_table.basename,
 			staging_table.parent_id,
+			staging_table.basename,
 			staging_table.filesystem_id,
 			staging_table.device_id,
 			staging_table.attributes,
