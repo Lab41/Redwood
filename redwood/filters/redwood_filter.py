@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 
 class RedwoodFilter(object):
     def __init__(self):
@@ -18,8 +19,20 @@ class RedwoodFilter(object):
         return sorted(combined, key=lambda tup: tup[0])
 
 
+    def visualize_histogram(self, data, centroids, xlabel, ylabel):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax_cluster = fig.add_subplot(111)
 
-    def findSmallestCluster(code, num_clusters):
+        ax.hist(data, color = 'b')
+        ax_cluster.hist(centroids, color = 'g')
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        plt.show()
+
+
+
+    def findSmallestCluster(self, code, num_clusters):
         
         l = list()
         

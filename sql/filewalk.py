@@ -37,29 +37,29 @@ def write_stat_info(basename, dirname, file_id,  parent_id, dirname_digest, file
     url = urllib.pathname2url(path)
     file_type = mimetypes.guess_type(url)[0]
     hash_val = hash_file(path, file_type)
-    data = {\
-            'hash':hash_val, \
-            'dir_hash':dirname_digest, \
-            'file_id':file_id, \
-            'dirname':dirname, \
-            'parent_id':parent_id, \
-            'filename':basename, \
-            'inode':stat_obj.st_ino, \
-            'device':stat_obj.st_dev, \
-            'permissions':str(oct(stat_obj.st_mode)), \
-            'uid':stat_obj.st_uid, \
-            'gid':stat_obj.st_gid, \
-            'size':stat_obj.st_size, \
-            'create_time':long(os.path.getctime(path)), \
-            'access_time':long(stat_obj.st_atime), \
-            'mod_time':long(stat_obj.st_mtime), \
-            'metadata_change_time':long(stat_obj.st_ctime), \
-            'user_flags':"", \
-            'links':stat_obj.st_nlink, \
-            'disk_offset':"", \
-            'entropy':'', \
-            'file_content_status':'', \
-            'extension':os.path.splitext(basename)[1], \
+    data = {
+            'hash':hash_val, 
+            'dir_hash':dirname_digest, 
+            'file_id':file_id, 
+            'dirname':dirname, 
+            'parent_id':parent_id, 
+            'filename':basename, 
+            'inode':stat_obj.st_ino, 
+            'device':stat_obj.st_dev, 
+            'permissions':str(oct(stat_obj.st_mode)), 
+            'uid':stat_obj.st_uid, 
+            'gid':stat_obj.st_gid, 
+            'size':stat_obj.st_size, 
+            'create_time':long(os.path.getctime(path)), 
+            'access_time':long(stat_obj.st_atime), 
+            'mod_time':long(stat_obj.st_mtime), 
+            'metadata_change_time':long(stat_obj.st_ctime), 
+            'user_flags':"", 
+            'links':stat_obj.st_nlink, 
+            'disk_offset':"", 
+            'entropy':'', 
+            'file_content_status':'', 
+            'extension':os.path.splitext(basename)[1], 
             'file_type':file_type,
            }
   
@@ -103,6 +103,7 @@ def hash_file(path, file_type):
     return ret
     
 
+omitted_dirs = ['dev', 'proc', 'sys']
 
 
 def main(argv):
@@ -127,12 +128,16 @@ def main(argv):
 
         #start the queue with a 0 value
         queue.put(0L) 
-       
+         
         for root, dirs, files in os.walk(start_dir):
        
             parent_id = queue.get() 
             new_parent_id = generateUniqueId(root)
-           
+            try: 
+                dirs.remove(omitted_dirs)
+            except ValueError, e:
+                pass
+
             for d in dirs:
                 queue.put(new_parent_id)
 
@@ -143,8 +148,6 @@ def main(argv):
             h = hashlib.sha1()
             h.update(root)
             root_digest = h.hexdigest()
-
-
 
             #write the parent directory
             write_stat_info("/", root,  new_parent_id, parent_id, root_digest, file_handle)

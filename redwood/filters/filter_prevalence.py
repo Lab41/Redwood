@@ -107,21 +107,22 @@ class FilterPrevalence(RedwoodFilter):
     def run(self):
         self.build()
         cursor = self.cnx.cursor()
-        
-        query = ("INSERT INTO filter_prevalence(unique_file_id, count, num_systems, os_id) "
-                    "SELECT  unique_file_id, COUNT(DISTINCT unique_file_id, media_source.id) as count, num_systems, s.idx "
-                    "from file_metadata LEFT JOIN media_source ON (file_metadata.source_id = media_source.id) "
-                        "LEFT JOIN( select os.id as idx, os.name as os, COUNT(os.name) as num_systems "
-                        "from os LEFT JOIN media_source ON(os.id = media_source.os_id) GROUP BY os.name ) s "
-                        "ON (s.idx = file_metadata.os_id) "
-                        "GROUP BY unique_file_id;")
+       
 
+        query = ("INSERT INTO filter_prevalence(unique_file_id, count, num_systems, os_id) "
+                 "SELECT  t.unique_file_id, COUNT(unique_file_id)as count, t.num_systems, t.os_idd from "
+                 "(SELECT DISTINCT unique_file_id, media_source.id as src, s.os_idd, num_systems "
+                 "from file_metadata LEFT JOIN media_source ON (file_metadata.source_id = media_source.id) "
+                 "LEFT JOIN( select os.id as os_idd, os.name as os, COUNT(os.name) as num_systems "     
+                 "from os LEFT JOIN media_source ON(os.id = media_source.os_id) GROUP BY os.name ) s "              
+                 "ON (s.os_idd = file_metadata.os_id)) t "
+                 "GROUP BY t.os_idd, t.unique_file_id;")
 
         cursor.execute(query)
         
       
         cursor.execute("UPDATE filter_prevalence SET average =  (SELECT count/num_systems)")
-
+        cursor.execute("UPDATE filter_prevalence SET score = (SELECT IF(num_systems < 3, average * .3, average))")
         self.cnx.commit()
 
         query  = ("INSERT INTO dir_prevalence (unique_path_id, score) "
@@ -130,6 +131,15 @@ class FilterPrevalence(RedwoodFilter):
                 " from unique_path LEFT JOIN file_metadata "
                 "ON (unique_path.id = unique_path_id) LEFT JOIN filter_prevalence "
                 "ON (file_metadata.unique_file_id = filter_prevalence.unique_file_id)) b  GROUP BY path_id, path)")
+                
+        query = ("INSERT INTO dir_prevalence (unique_path_id, score) "
+            "SELECT unique_path.id, avg(average) "
+            "FROM unique_path "
+            "LEFT JOIN file_metadata "
+            "ON unique_path.id = unique_path_id "
+            "LEFT JOIN filter_prevalence "
+            "ON file_metadata.unique_file_id = filter_prevalence.unique_file_id AND file_metadata.os_id = filter_prevalence.os_id "
+            "GROUP BY unique_path.id;")
 
         cursor.execute(query)
         
@@ -165,13 +175,13 @@ class FilterPrevalence(RedwoodFilter):
         print "Building filter staging tables"    
         self.cnx.commit()
         query = ("CREATE TABLE IF NOT EXISTS filter_prevalence ( "
-                "id INT NOT NULL AUTO_INCREMENT, "
+                "id BIGINT UNSIGNED AUTO_INCREMENT NOT NULL,"
+                "unique_file_id BIGINT UNSIGNED NOT NULL, "
                 "score DOUBLE NOT NULL DEFAULT .5, "
                 "average DOUBLE NOT NULL DEFAULT .5,"
-                "unique_file_id INT NOT NULL, "
                 "count INT NOT NULL DEFAULT 0,"
                 "num_systems INT NOT NULL DEFAULT 0,"
-                "os_id INT NOT NULL, " 
+                "os_id INT UNSIGNED NOT NULL, " 
                 "PRIMARY KEY(id), "
                 "INDEX fk_unique_file_idx (unique_file_id), "
                 "INDEX fk_os_id_idx (os_id),"
@@ -187,11 +197,10 @@ class FilterPrevalence(RedwoodFilter):
         cursor.execute(query)
         #TODO: add back the constraint once we match parent ids with file ids
         query = ("CREATE TABLE IF NOT EXISTS dir_prevalence ( "
-                "id INT NOT NULL AUTO_INCREMENT, "
-                "directory_id INT NOT NULL,"
+                "directory_id BIGINT NOT NULL, "
                 "score DOUBLE NOT NULL DEFAULT .5,"
-                "unique_path_id INT NOT NULL,"
-                "PRIMARY KEY(id),"
+                "unique_path_id INT UNSIGNED NOT NULL,"
+                "PRIMARY KEY(directory_id),"
                 "INDEX directory_id_idx USING BTREE (directory_id),"
                 "INDEX fk_unique_path_id_idx(unique_path_id),"
                 "CONSTRAINT fk_unique_path_id_idx FOREIGN KEY(unique_path_id) "

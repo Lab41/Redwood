@@ -1,5 +1,4 @@
 import time
-import mysql.connector
 import operator
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,78 +19,58 @@ class LocalityUniqueness(RedwoodFilter):
         print "Evaluate Directory requires "
 
     #def run(self):
-
+    
     def discover_evaluateDir(self, dir, source, num_clusters):
         whitened, codebook, sorted_codes, sorted_results = self.evaluateDir(dir, source, num_clusters, self.cnx)
 
-    def evaluateDir(self, dir_name, source, num_clusters, cnx):
-        cursor = cnx.cursor()
+    def evaluate_dir(self, dir_name, source, num_clusters):
+        
+        cursor = self.cnx.cursor()
+        
+        #grab all files for a particular directory from a specific source
         hash_val = sha1(dir_name).hexdigest()
+        
         query = ("""SELECT file_name, file_metadata_id, filesystem_id
         FROM joined_file_metadata
-        WHERE source_id = '{}' AND path_hash = '{}'""").format(source, hash_val)
+        WHERE source_id = (select id from media_source where name = '{}') AND path_hash = '{}'""").format(source, hash_val)
 
         cursor.execute(query)
 
+        #bring all results into memory
         sql_results = cursor.fetchall()
 
         if(len(sql_results) == 0):
             return [None, None]
-
+       
+        #zero out the array that will contain the inodes
         filesystem_id_arr = np.zeros(len(sql_results))
 
-        i=0
-        for result in sql_results:
-            filesystem_id_arr[i] = result[2]
+        i = 0
+        for _, _, inode in sql_results:
+            filesystem_id_arr[i] = inode
             i += 1
-        whitened = whiten(filesystem_id_arr)
-        whitened = np.sort(whitened)
-        filesystem_id_arr = np.sort(filesystem_id_arr)
 
+        whitened = whiten(filesystem_id_arr) 
+
+        #get the centroids
         codebook,_ = kmeans(whitened, num_clusters)
         code, dist = vq(whitened, codebook)
+        print code
         d = defaultdict(int)
 
+        #quick way to get count of cluster sizes        
         for c in code:
             d[c] += 1
-
-        #sorted ascending
+      
+        #sorted the map codes to get the smallest to largest cluster
         sorted_codes = sorted(d.iteritems(), key = operator.itemgetter(1))
+        #sorts the codes and sql_results together as pairs
         sorted_results = self.sortAsClusters(code, sql_results, num_clusters)
+         
+        print sorted_results
+        self.visualize_histogram(whitened, codebook, "normalized inodes", "file occurrences")
 
-        bins = list()
-        i = 1
-        while(i <= len(whitened)):
-            bins.insert(i, i)
-            i+=1
-
-        x = [random.gauss(3, 1) for _ in range(400)]
-        y = [random.gauss(4, 2) for _ in range(400)]
-
-
-        weighted_centroids = list()
-        tmp = list()
-
-        for i in range(0, len(codebook)):
-            tmp.append(codebook[i])
-
-        for i in range(0, (len(whitened) / 100)):
-            weighted_centroids.extend(tmp)
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        #plt.hist(whitened, whitened.max() * 2, [0, whitened.max()], color = 'b', alpha = 0.5)
-        ax.hist(whitened, bins = 15, color = 'b')
-        ax2 = fig.add_subplot(111)
-        #plt.hist(test, num_clusters * 4, [0, num_clusters * 2], color='g', alpha = 0.5)
-        ax2.hist(weighted_centroids, color = 'g')
-        ax.set_xlabel("filesystem ID's")
-        ax.set_ylabel("file occurences")
-        plt.show()
-
-        #plt.hist(whitened, whitened.max() * 2, [0, whitened.max()], color = 'b'),plt.hist(codebook, 6, [0, whitened.max()], color='g'),plt.show()
-
-        return (whitened, codebook, sorted_codes, sorted_results)
+        return (sorted_codes, sorted_results)
 
     def discover_evaluateSource(self, source_id, num_clusters, threshold):
         self.evaluateSource(self.cnx, source_id, num_clusters, threshold)
@@ -134,3 +113,21 @@ class LocalityUniqueness(RedwoodFilter):
                 curr_path = full_path
 
             files.append(filesystem_id)
+
+
+
+    def build(self):
+
+        cursor = self.cnx.cursor()
+        cursor.execute("DROP TABLE IF EXISTS filter_loc_uniqueness")
+        self.cnx.commit()
+        query = ("CREATE TABLE IF NOT EXISTS locality_uniqueness ( "
+                    "global_file_id BIGINT UNSIGNED NOT NULL,"
+                    "score DOUBLE NOT NULL DEFAULT .5, "
+                    "os_id INT UNSIGNED NOT NULL "
+                    ") ENGINE = InnoDB;")
+
+                
+        print "Building Locality Uniqueness staging table"
+    
+
