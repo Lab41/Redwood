@@ -48,12 +48,31 @@
 <a name="setup" class="anchor" href="#setup"><span class="octicon octicon-link"></span></a>Setup</h2>
 
 <h3>
-<a name="datbases" class="anchor" href="#datbases"><span class="octicon octicon-link"></span></a>Datbases</h3>
+<a name="databases" class="anchor" href="#databases"><span class="octicon octicon-link"></span></a>Databases</h3>
+
+<p>First create the database</p>
 
 <p>From the Redwood directory, run</p>
 
 <pre><code>mysql -uyour_db_user -pyour_password -hyour_host &lt; sql/create_redwood_db.sql
 mysql -uyour_db_user -pyour_password -hyour_host &lt; sql/create_redwood_sp.sql
+</code></pre>
+
+<h3>
+<a name="run-redwood" class="anchor" href="#run-redwood"><span class="octicon octicon-link"></span></a>Run Redwood</h3>
+
+<p>write a connection config</p>
+
+<pre><code>[mysqld]
+database:your_db_name
+host:your_host
+username:your_username
+password:your_password
+</code></pre>
+
+<p>Then, start the application, specifying the config you just created</p>
+
+<pre><code>python redwood.py /path/to/connection/config
 </code></pre>
 
 <h3>
