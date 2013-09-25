@@ -12,7 +12,7 @@ This project implements statistical methods to assist in identifying anomalous f
 
 ##Setup
 
-###Datbases
+###Databases
 First create the database
 
 From the Redwood directory, run

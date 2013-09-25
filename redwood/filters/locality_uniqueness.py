@@ -113,6 +113,7 @@ class LocalityUniqueness(RedwoodFilter):
                 curr_path = full_path
 
             files.append(filesystem_id)
+<<<<<<< HEAD
 
 
 
@@ -131,3 +132,5 @@ class LocalityUniqueness(RedwoodFilter):
         print "Building Locality Uniqueness staging table"
     
 
+=======
+>>>>>>> 0976f65fb7bc5e36bd56b0bed4b77995788e7173
