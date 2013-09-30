@@ -25,8 +25,8 @@ def generateUniqueId(path):
     return  long(binascii.hexlify(combined), 16) 
 
 
-def write_stat_info(basename, dirname, file_id,  parent_id, dirname_digest, file_handle):
-    path = dirname + '/' + basename
+def write_stat_info(basename, dirname, file_id, parent_id, dirname_digest, file_handle):
+    path = os.path.join(dirname, basename)
    
     try:
         stat_obj = os.stat(path)
@@ -155,9 +155,6 @@ def main(argv):
                 _id = generateUniqueId(f)
                 write_stat_info(f, root, _id, new_parent_id, root_digest, file_handle)
             file_handle.flush()
-    
-    file_handle.close()
-
 
 if __name__=="__main__":
     main(sys.argv)
