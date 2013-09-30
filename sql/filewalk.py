@@ -103,7 +103,7 @@ def hash_file(path, file_type):
     return ret
     
 
-omitted_dirs = ['dev', 'proc', 'sys']
+omitted_dirs = ['/dev', '/proc', '/sys']
 
 
 def main(argv):
@@ -117,7 +117,7 @@ def main(argv):
     out_file = "{}--{}--{}".format(str_date, argv[2], argv[3]) 
     start_dir = argv[1]
     
-    queue = Queue()
+    stack = list()
 
     with open(out_file, "w") as file_handle:
         
@@ -127,24 +127,24 @@ def main(argv):
                 "file_content_status,extensions,file_type\n")
 
         #start the queue with a 0 value
-        queue.put(0L) 
+        stack.append(0L) 
          
         for root, dirs, files in os.walk(start_dir):
-       
-            parent_id = queue.get() 
-            new_parent_id = generateUniqueId(root)
-            try: 
-                dirs.remove(omitted_dirs)
-            except ValueError, e:
-                pass
 
-            for d in dirs:
-                queue.put(new_parent_id)
-
-            #optimization to skip proc fs 
-            if(root.startswith('/proc') or root.startswith('/sys') or root.startswith('/dev')):
-                continue
+            parent_id = stack.pop() 
             
+            #some directories we will ignore as so
+            if root in omitted_dirs:
+                del dirs[:]
+                continue
+
+            #the root will be the parent id we add to the queue
+            new_parent_id = generateUniqueId(root)
+
+            #for each of the child dirs, add the parent id. This assumes a BFS seach
+            for d in dirs:
+                stack.append(new_parent_id)
+
             h = hashlib.sha1()
             h.update(root)
             root_digest = h.hexdigest()
@@ -155,6 +155,7 @@ def main(argv):
                 _id = generateUniqueId(f)
                 write_stat_info(f, root, _id, new_parent_id, root_digest, file_handle)
             file_handle.flush()
+    
     file_handle.close()
 
 
