@@ -116,6 +116,14 @@ def main(argv):
     str_date = today.strftime('%Y-%m-%d')
     out_file = "{}--{}--{}".format(str_date, argv[2], argv[3]) 
     start_dir = argv[1]
+
+    # We want to have a nice, dynamic output that doesn't flood the
+    # terminal with lines of text. So we'll write a line, then flush it
+    # with '\r'. In order to do this properly, we need to first measure
+    # the width of the terminal.
+    rows,columns = os.popen('stty size', 'r').read().split()
+    rows = int(rows)
+    columns = int(columns)
     
     stack = list()
 
@@ -138,7 +146,12 @@ def main(argv):
                 del dirs[:]
                 continue
 
-            #the root will be the parent id we add to the queue
+            sys.stdout.write('\r')
+            sys.stdout.write(' ' * columns)
+            sys.stdout.write('\r')
+            sys.stdout.write('processing {}'.format(root))
+            sys.stdout.flush()
+
             new_parent_id = generateUniqueId(root)
 
             #for each of the child dirs, add the parent id. This assumes a BFS seach
