@@ -103,7 +103,7 @@ def hash_file(path, file_type):
     return ret
     
 
-omitted_dirs = ['/dev', '/proc', '/sys']
+omitted_dirs = ['/dev', '/proc', '/sys', '/Volumes', '/mnt', '/net']
 
 
 def main(argv):
