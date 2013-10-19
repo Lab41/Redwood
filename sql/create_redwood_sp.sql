@@ -1,4 +1,3 @@
-USE `redwood`;
 
 DROP PROCEDURE IF EXISTS map_staging_table;
 

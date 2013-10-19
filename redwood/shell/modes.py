@@ -6,7 +6,7 @@ import exceptions
 import redwood.filters
 import redwood.io.csv_importer as csv_load
 from redwood.filters import plugins
-
+import time
 
 
 
@@ -89,6 +89,26 @@ class FilterMode(GeneralMode):
             return
         self.controller.pushMode(DiscoverMode(self.cnx, plugins[v],  self.controller))     
 
+    def update(self, args = None):
+        if len(args) != 2:
+            print "Error: source required"
+            return
+        v = GeneralMode.validateFilterId(args[0])
+        if v < 0:
+            return
+
+        cursor = self.cnx.cursor()
+        query = "select * from media_source where name=\"{}\"".format(args[1])
+        cursor.execute(query)
+        r = cursor.fetchone()
+
+        plugin = plugins[v]
+        plugin.cnx = self.cnx
+        start_time = time.time()
+        plugin.update(args[1])
+        elapsed_time = time.time() - start_time
+        print "completed update of media source \"{}\" for filter \"{}\" in {} seconds".format(args[1], plugin.name, elapsed_time)
+        
     def run(self, args = None):
         if(len(args) != 1):
             print "Error: Filter Id required"
@@ -97,6 +117,15 @@ class FilterMode(GeneralMode):
         plugin = plugins[v]
         plugin.cnx = self.cnx
         plugin.run()
+        print "completing analysis of data using filter \"{}\"".format(plugin.name)
+    def clean(self, args=None):
+        v = GeneralMode.validateFilterId(args[0])
+        if v < 0:
+            return
+        plugin = plugins[v]
+        plugin.cnx = self.cnx
+        plugin.clean()
+        print "all data deleted associated with filter \"{}\"".format(plugin.name)
     def list(self, args=None):
         print "Available Filters"
         i = 0
@@ -111,7 +140,10 @@ class FilterMode(GeneralMode):
         print("\t-- activates discover mode for the given filter-id")
         print("[*] run <filter-id>")
         print("\t-- runs the filter with the given filter-id")
-
+        print "[*] update <filter-id> <source-name>"
+        print "\t-- updates the data model to include data from source <source-name>"
+        print "[*] clean <filter-id>"
+        print "\t-- removes all data associated with the filter"
 class StandardMode(GeneralMode):
     def __init__(self, cnx, controller):
         super(StandardMode, self).__init__(cnx, controller)

@@ -4,18 +4,32 @@ class RedwoodFilter(object):
     def __init__(self):
         self.name = "generic"
         self.cnx = None    
-    def run(self, cnx):
+    def run(self):
         print "running default"
+    def clean(self):
+        print "cleaning default"
+    def update(self, source):
+        print "update default"
     def display(self):
         print "displaying"
-
-    def sortAsClusters(self, code, sql_results, num_clusters):
+    
+    def sortAsClusters(self, code, sql_results):
        
         combined = list()
 
         for r, c in zip(sql_results, code):
             combined.append((c, r))
       
+        return sorted(combined, key=lambda tup: tup[0])
+
+    def zip_and_sort(self, code, distances,  sql_results):
+       
+        combined = list()
+
+        #for  c, d, r in zip(code, distances, sql_results):
+        #    combined.append((c,d, r))
+        combined = zip(code, distances, sql_results)
+
         return sorted(combined, key=lambda tup: tup[0])
 
 
