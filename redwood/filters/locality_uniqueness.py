@@ -259,11 +259,10 @@ class LocalityUniqueness(RedwoodFilter):
         while rows.empty() is False:
             curr = rows.get()
             input_rows.append(curr)
-        print "...sending results to server"
+        print "...sending {} results to server".format(len(input_rows))
         
-        cursor.executemany("""INSERT INTO locality_uniqueness(file_metadata_id, score) VALUES(%s, %s)""", input_rows)
+        cursor.executemany("""INSERT INTO locality_uniqueness(file_metadata_id, score) values(%s, %s)""", input_rows)
         self.cnx.commit()
-
         #need to drop the lu_scores and recalculate
         cursor.execute("drop table if exists lu_scores")
         
