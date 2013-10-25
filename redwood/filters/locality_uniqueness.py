@@ -104,8 +104,12 @@ class LocalityUniqueness(RedwoodFilter):
         self.name = "Locality Uniqueness"
 
     def usage(self):
-        print "Evaluate Directory requires "
-
+        print "show_top [size]"
+        print "\t--lists top size scores for all added sources"
+        print "show_bottom [size]"
+        print "\t--lists bottom size scores for all added sources"
+        print "evaluate_dir [full_path] [source] [num_clusters]"
+        print "\t--Runs kmeans and shows scatter plot"
     def update(self, source):
         self.build()
         self.evaluateSource(source, 3)
@@ -132,42 +136,52 @@ class LocalityUniqueness(RedwoodFilter):
                     LEFT JOIN media_source on (file_metadata.source_id = media_source.id) order by score asc limit 0, {}""").format(n)
         cursor.execute(query)
         for(index, score, path, filename, source) in cursor:
-            print "{} {} {} {} {}".format(index, score, path, filename, source)
+            print "{}: [Score {}] [Src: {}] {}/{}".format(index, score, source,  path, filename)
 
 
     def discover_evaluate_dir(self, dir_name, source, num_clusters):
-        
+       
+        num_features = 2
+        num_clusters = int(num_clusters)
         cursor = self.cnx.cursor()
         
+        if(dir_name.endswith('/')):
+            dir_name = dir_name[:-1]
+
+        print "Running discovery function on source {} at directory {}".format(source, dir_name)
+
+        source_id = self.get_source_id(source)
+
+        if source_id is -1:
+            return [None, None]
+
         #grab all files for a particular directory from a specific source
         hash_val = sha1(dir_name).hexdigest()
         
-        query = ("""SELECT file_name, file_metadata_id, filesystem_id
+        query = ("""SELECT file_name, file_metadata_id, filesystem_id, last_modified
         FROM joined_file_metadata
-        WHERE source_id = (select id from media_source where name = '{}') AND path_hash = '{}'""").format(source, hash_val)
+        WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'""").format(source_id, hash_val)
 
         cursor.execute(query)
 
         #bring all results into memory
         sql_results = cursor.fetchall()
-
+      
         if(len(sql_results) == 0):
             return [None, None]
-       
+
         #zero out the array that will contain the inodes
-        filesystem_id_arr = np.zeros(len(sql_results))
+        filesystem_id_arr = np.zeros((len(sql_results), num_features))
 
         i = 0
-        for _, _, inode in sql_results:
-            filesystem_id_arr[i] = inode
+        for _, _,inode, mod_date in sql_results:
+            seconds = calendar.timegm(mod_date.utctimetuple())
+            filesystem_id_arr[i] = (inode, seconds)
             i += 1
-
         whitened = whiten(filesystem_id_arr) 
-
         #get the centroids
         codebook,_ = kmeans(whitened, num_clusters)
         code, dist = vq(whitened, codebook)
-        print code
         d = defaultdict(int)
 
         #quick way to get count of cluster sizes        
@@ -177,16 +191,16 @@ class LocalityUniqueness(RedwoodFilter):
         #sorted the map codes to get the smallest to largest cluster
         sorted_codes = sorted(d.iteritems(), key = operator.itemgetter(1))
         #sorts the codes and sql_results together as pairs
-        sorted_results = self.sortAsClusters(code, sql_results, num_clusters)
-        
-        print sorted_results
-        self.visualize_histogram(whitened, codebook, "normalized inodes", "file occurrences")
+        combined = zip(code, sql_results, whitened)
+        sorted_results =  sorted(combined, key=lambda tup: tup[0])
 
+        for r in sorted_results:
+            print r
+
+        #self.visualize_histogram(whitened, codebook, "normalized inodes", "file occurrences")
+        self.visualize_scatter(d, code, whitened, "features", "occurences", codebook)
         return (sorted_codes, sorted_results)
 
-    def discover_evaluateSource(self, source_id, num_clusters):
-        self.evaluateSource(self.cnx, source_id, num_clusters)
-    
     def evaluateSource(self, source_name, num_clusters):
 
         cursor = self.cnx.cursor()
@@ -215,50 +229,48 @@ class LocalityUniqueness(RedwoodFilter):
             self.cnx.commit()
             print "Evaluating {} ".format(source_name)
         #returns all files sorted by directory for the given source
-        query = ("""SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id 
+        query = ("""SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash 
                 FROM joined_file_metadata 
                 where source_id = {} order by parent_id asc""").format(source_id)
         
         cursor.execute(query)
-
+       
         files = list()
-        first = cursor.fetchone()
-        if first is None:
-            return
-
-        files.append(first)
-        parent_id_prev = first[5]
 
         print "...Beginning clustering analysis"
-
         pool = Pool(processes=4)              # start 4 worker processes
-
         manager = Manager()
-        
         rows = manager.Queue()
-
-
         
+        is_first = 0
+        parent_id_prev = None
         #should iterate by dir of a given source at this point
-        for(file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id) in cursor:
+        for(file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash_val) in cursor:
            
-            if parent_id_prev != parent_id:
+            if parent_id_prev != parent_id and is_first != 0:
                 parent_id_prev = parent_id
-                
                 pool.apply_async(do_eval, [rows, full_path, files, num_clusters, 2])
                 files = list()
             else:
+                is_first = 1
                 #make sure to omit directories
-                if file_name != '/':
+                
+                if file_name != '/' and hash_val != "":
                     files.append((file_metadata_id, last_modified, full_path,file_name, filesystem_id, parent_id))
       
         pool.close()
         pool.join() 
            
         input_rows = []
+        count = 0
         while rows.empty() is False:
             curr = rows.get()
             input_rows.append(curr)
+            count +=1
+            if count % 50000 is 0:
+                print "...sending {} results to server".format(len(input_rows))
+                input_rows = []
+                count=0
         print "...sending {} results to server".format(len(input_rows))
         
         cursor.executemany("""INSERT INTO locality_uniqueness(file_metadata_id, score) values(%s, %s)""", input_rows)

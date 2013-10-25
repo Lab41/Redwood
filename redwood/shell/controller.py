@@ -3,10 +3,9 @@ import os
 import getopt
 import string
 import exceptions
-#import redwood.filters
-#import redwood.io.csv_importer as csv_load
-#from redwood.filters import plugins
+import multiprocessing
 from redwood.shell.modes import StandardMode, FilterMode, DiscoverMode
+
 
 
 class SessionController:
@@ -21,6 +20,8 @@ class SessionController:
         if(len(self.mode_stack) > 1):
             self.mode_stack.pop()        
     def run(self):
+        
+        print "running with {} cores".format(multiprocessing.cpu_count())
 
         while True:
             mode = self.mode_stack[len(self.mode_stack) - 1] 

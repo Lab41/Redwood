@@ -138,8 +138,6 @@ class FilterMode(GeneralMode):
         print("\t-- lists all loaded filters ")
         print("[*] discover <filter-id> ")
         print("\t-- activates discover mode for the given filter-id")
-        print("[*] run <filter-id>")
-        print("\t-- runs the filter with the given filter-id")
         print "[*] update <filter-id> <source-name>"
         print "\t-- updates the data model to include data from source <source-name>"
         print "[*] clean <filter-id>"
