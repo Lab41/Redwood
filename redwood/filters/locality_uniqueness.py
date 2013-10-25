@@ -112,7 +112,7 @@ class LocalityUniqueness(RedwoodFilter):
         print "\t--Runs kmeans and shows scatter plot"
     def update(self, source):
         self.build()
-        self.evaluateSource(source, 3)
+        self.evaluate_source(source, 3)
        
 
     def discover_show_top(self, n):
@@ -201,7 +201,7 @@ class LocalityUniqueness(RedwoodFilter):
         self.visualize_scatter(d, code, whitened, "features", "occurences", codebook)
         return (sorted_codes, sorted_results)
 
-    def evaluateSource(self, source_name, num_clusters):
+    def evaluate_source(self, source_name, num_clusters):
 
         cursor = self.cnx.cursor()
         
@@ -269,6 +269,7 @@ class LocalityUniqueness(RedwoodFilter):
             count +=1
             if count % 50000 is 0:
                 print "...sending {} results to server".format(len(input_rows))
+                cursor.executemany("""INSERT INTO locality_uniqueness(file_metadata_id, score) values(%s, %s)""", input_rows)
                 input_rows = []
                 count=0
         print "...sending {} results to server".format(len(input_rows))
