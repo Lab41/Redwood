@@ -74,3 +74,5 @@ class YourFilterName(RedwoodFilter)
         your code
 
 ```
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/Lab41/redwood/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
