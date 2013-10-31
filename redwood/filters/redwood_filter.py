@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pylab
 import numpy as np
 import matplotlib
+import array
 
 class RedwoodFilter(object):
     def __init__(self):
@@ -25,54 +26,47 @@ class RedwoodFilter(object):
       
         return sorted(combined, key=lambda tup: tup[0])
 
-    def zip_and_sort(self, code, distances,  sql_results):
-       
-        combined = list()
+    def visualize_scatter(self, counts, codes, data, codebook, num_clusters, xlabel="", ylabel=""):
+        """
+        Generates a 2-d scatter plot visualization of two feature data for 
 
-        #for  c, d, r in zip(code, distances, sql_results):
-        #    combined.append((c,d, r))
-        combined = zip(code, distances, sql_results)
+        :param counts: dictionary of counts for the number of observations pairs for 
+                        each cluster
+        :param codes:  list of codes for each observation row in the order returned by the original query
+        :param data: list of observations returned from query in their original order
+        :param codebook: the coordinates of the centroids
+        :param num_clusters: number of specified clusters up to 8
+        :param xlabel: a label for the x axis (Default: None)
+        :param ylabel: a label for the y axis (Default: None)
+        """
+        if num_clusters > 8:
+            print "Visualize scatter only supports up to 8 clusters"
+            return
 
-        return sorted(combined, key=lambda tup: tup[0])
+        num_features = 2
+        list_arrays = list()
+        list_arr_idx = array.array("I", [0, 0, 0])
 
+        for idx in range(num_clusters):
+            list_arrays.append(np.zeros((counts[idx], num_features)))
 
-    def visualize_scatter(self, counts, codes, data, xlabel, ylabel, codebook):
-
-        #set up first
-        colorObj = matplotlib.colors.ColorConverter()
-
-        c0 = colorObj.to_rgb('red')
-        c1 = colorObj.to_rgb('blue')
-        c2 = colorObj.to_rgb('green')
-        c3 = colorObj.to_rgb('orange')
-
-        set0 = np.zeros((counts[0], 2))
-        set1 = np.zeros((counts[1], 2))
-        set2 = np.zeros((counts[2], 2))
-
-        set0_idx = 0
-        set1_idx = 0
-        set2_idx = 0
 
         for i, j in zip(codes, data):
 
-            if i == 0:
-                curr_set = set0[set0_idx]
-                set0_idx+=1
-            elif i == 1:
-                curr_set = set1[set1_idx]
-                set1_idx+=1
-            else:
-                curr_set = set2[set2_idx]
-                set2_idx+=1
+            list_arrays[i][list_arr_idx[i]][0] = j[0]
+            list_arrays[i][list_arr_idx[i]][1] = j[1]
+            list_arr_idx[i] += 1
 
-            curr_set[0] = j[0]
-            curr_set[1] = j[1]
-
+        #plot the clusters first as relatively larger circles
         plt.scatter(codebook[:,0], codebook[:,1], color='orange', s=260)
-        plt.scatter(set0[:,0], set0[:,1], color='blue')
-        plt.scatter(set1[:,0], set1[:,1], color='green')
-        plt.scatter(set2[:,0], set2[:,1], c='cyan')
+       
+        colors = ['red', 'blue', 'green', 'purple', 'cyan', 'black', 'brown', 'grey']
+
+        for idx in range(num_clusters):
+            plt.scatter(list_arrays[idx][:,0], list_arrays[idx][:,1], c=colors[idx]) 
+        
+        plt.ylabel(ylabel)
+        plt.xlabel(xlabel)
         plt.show()
 
     def visualize_histogram(self, data, centroids, xlabel, ylabel):

@@ -1,3 +1,29 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2013 In-Q-Tel, Inc/Lab41, All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+"""
+This Filter provides analysis and scoring based on feature clusters of individual
+directories of files from media sources
+
+Created on 19 October 2013
+@author: Paul
+"""
+
+
 import time
 import operator
 import os
@@ -11,6 +37,7 @@ import calendar
 import random
 import warnings
 from multiprocessing import Pool, Queue, Manager
+import Queue
 
 warnings.filterwarnings('ignore')
 
@@ -99,8 +126,12 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
 
 class LocalityUniqueness(RedwoodFilter):
 
-    def __init__(self):
-        self.cnx = None
+    """
+    This LocalityUniqueness class provides the "Locality Uniqueness" filter functionality
+    """
+
+    def __init__(self, cnx=None):
+        self.cnx = cnx
         self.name = "Locality Uniqueness"
 
     def usage(self):
@@ -110,12 +141,28 @@ class LocalityUniqueness(RedwoodFilter):
         print "\t--lists bottom size scores for all added sources"
         print "evaluate_dir [full_path] [source] [num_clusters]"
         print "\t--Runs kmeans and shows scatter plot"
+    
     def update(self, source):
+        """
+        Applies the Locality Uniqueness filter to the given source, updating existing data
+        analyzed from previous sources. Currently the update function uses 3 clusters for clustering
+        analysis.  This will be dynamic in future versions. 
+
+        :param source: media source name
+        """
+        
         self.build()
         self.evaluate_source(source, 3)
        
 
     def discover_show_top(self, n):
+        """
+        Discovery function that shows the top n scores from those media sources that already have been
+        analyzed by this filter.
+
+        :param n: the limit of results to show from the top results
+        """
+
         cursor = self.cnx.cursor()
         query = ("""SELECT lu_scores.id, score,  unique_path.full_path, file_metadata.file_name, media_source.name from lu_scores 
                     LEFT JOIN file_metadata ON (lu_scores.id = file_metadata.unique_file_id) LEFT JOIN unique_path on 
@@ -128,7 +175,13 @@ class LocalityUniqueness(RedwoodFilter):
 
 
     def discover_show_bottom(self, n):
-        
+        """
+        Discovery function that shows the bottom n scores from those media sources that alreay have been
+        analyzed by this filter
+
+        :param n: the limit of results to show from the bottom results
+        """
+
         cursor = self.cnx.cursor()
         query = ("""SELECT lu_scores.id, score,  unique_path.full_path, file_metadata.file_name, media_source.name from lu_scores 
                     LEFT JOIN file_metadata ON (lu_scores.id = file_metadata.unique_file_id) LEFT JOIN unique_path on 
@@ -139,8 +192,17 @@ class LocalityUniqueness(RedwoodFilter):
             print "{}: [Score {}] [Src: {}] {}/{}".format(index, score, source,  path, filename)
 
 
-    def discover_evaluate_dir(self, dir_name, source, num_clusters):
-       
+    def discover_evaluate_dir(self, dir_name, source, num_clusters=3):
+        """
+        Discovery function that applies kmeans clustering to a specified directory. Currently,
+        this function uses two static features of "modification date" and "inode number" but
+        future versions will allow for dynamic features inputs.
+
+        :param dir_name: directory name to be analyzed (Required)
+        :source: source name to be analzyed (Required)
+        :num_clusters: specified number of clusters to use for kmeans (Default: 3)
+        """
+
         num_features = 2
         num_clusters = int(num_clusters)
         cursor = self.cnx.cursor()
@@ -148,7 +210,7 @@ class LocalityUniqueness(RedwoodFilter):
         if(dir_name.endswith('/')):
             dir_name = dir_name[:-1]
 
-        print "Running discovery function on source {} at directory {}".format(source, dir_name)
+        print "...Running discovery function on source {} at directory {}".format(source, dir_name)
 
         source_id = self.get_source_id(source)
 
@@ -191,17 +253,23 @@ class LocalityUniqueness(RedwoodFilter):
         #sorted the map codes to get the smallest to largest cluster
         sorted_codes = sorted(d.iteritems(), key = operator.itemgetter(1))
         #sorts the codes and sql_results together as pairs
-        combined = zip(code, sql_results, whitened)
+        combined = zip(dist, code, sql_results)
         sorted_results =  sorted(combined, key=lambda tup: tup[0])
 
-        for r in sorted_results:
-            print r
+        for dist_val, c, r in sorted_results:
+            print "Dist: {} Cluster: {}  Data: {}".format(dist_val,c,r)
 
-        #self.visualize_histogram(whitened, codebook, "normalized inodes", "file occurrences")
-        self.visualize_scatter(d, code, whitened, "features", "occurences", codebook)
-        return (sorted_codes, sorted_results)
+        self.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime")
 
-    def evaluate_source(self, source_name, num_clusters):
+    def evaluate_source(self, source_name, num_clusters=3):
+        """
+        Evaluates and scores a given source with a specified number of clusters for kmeans. Currently
+        this function uses two set features as inputs (modification time and inode number), however
+        futures versions will allow for dynamic feature inputs
+
+        :param source_name: media source name
+        :param num_clusters: number of clusters to input into kmeans (Default: 3)
+        """
 
         cursor = self.cnx.cursor()
         
