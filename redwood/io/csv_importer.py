@@ -5,6 +5,8 @@ import string
 import time
 from datetime import datetime
 import MySQLdb
+from redwood.foundation.prevalence import PrevalenceAnalyzer
+
 
 def db_load_file(connection, path):
 
@@ -15,7 +17,7 @@ def db_load_file(connection, path):
         return
     
     start_time = time.time()
-    print "Loading: {}...".format(path)
+    print "...Loading file \"{}\"".format(path)
 
     filename = os.path.basename(path)
     fields = string.split(filename, '--')
@@ -74,6 +76,7 @@ def db_load_file(connection, path):
         
         cursor.execute(add_media_source)
         connection.commit()
+        source_id = cursor.lastrowid
 
     except MySQLdb.Error, e:
         if connection:
@@ -100,7 +103,6 @@ def db_load_file(connection, path):
 
 
     try:
-        print "##################"
         cursor.execute(add_staging_table)
         connection.commit() 
         cursor.callproc('map_staging_table', (media_source_id, os_id))
@@ -113,17 +115,23 @@ def db_load_file(connection, path):
         return
     
     total_time =  time.time() - start_time
-    print "Completed import of {} in {}".format(path, total_time)
+    print "\t[*] completed in {}".format(total_time)
     cursor.close()
+    
+    return (os_id, source_id)
 
 def run(cnx, path):
+
+    
+    src_os_list = list()
 
     if(path == None):
         print "Path is required"
         return
-    print path
+    
     if(os.path.isfile(path)):
-        db_load_file(cnx, path)
+        r =  db_load_file(cnx, path)
+        src_os_list.append(r)
     elif(os.path.isdir(path)):
         for r, d, f in os.walk(path):
             while len(d) > 0:
@@ -131,6 +139,18 @@ def run(cnx, path):
             for file in f:
                 if not file.startswith('.'):
                     os.path.abspath(os.path.join(r, file))
-                    db_load_file(cnx, path + "/" + file)
+                    r = db_load_file(cnx, path + "/" + file)
+                    src_os_list.append(r)
     else:
         print 'Please input a valid file or a directory for import'
+        return
+
+    
+    print "source os"
+    print src_os_list
+
+    #now let's run the prevalence analyzer
+    pu = PrevalenceAnalyzer(cnx)
+    pu.update(src_os_list)
+
+

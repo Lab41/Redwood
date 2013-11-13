@@ -109,7 +109,7 @@ class FilterMode(GeneralMode):
         elapsed_time = time.time() - start_time
         print "completed update of media source \"{}\" for filter \"{}\" in {} seconds".format(args[1], plugin.name, elapsed_time)
         
-    def run(self, args = None):
+    def clean_run(self, args = None):
         if(len(args) != 1):
             print "Error: Filter Id required"
             return
@@ -138,6 +138,8 @@ class FilterMode(GeneralMode):
         print("\t-- lists all loaded filters ")
         print("[*] discover <filter-id> ")
         print("\t-- activates discover mode for the given filter-id")
+        print "[*] clean_run <filter-id>"
+        print "\t--clears all data for a filter, then runs the filter on all sources"
         print "[*] update <filter-id> <source-name>"
         print "\t-- updates the data model to include data from source <source-name>"
         print "[*] clean <filter-id>"

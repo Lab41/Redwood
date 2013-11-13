@@ -2,6 +2,15 @@
 
 This project implements statistical methods to assist in identifying anomalous files from a larger data set.  
 
+##Documentation
+from the root project directory, run the following
+```
+sphinx-apidoc -o docs redwood -F
+pushd docs
+make html
+make man
+popd
+```
 
 ##Python Package Requirements
 

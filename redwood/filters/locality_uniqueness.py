@@ -42,9 +42,11 @@ import Queue
 warnings.filterwarnings('ignore')
 
 def find_anomalies(rows, sorted_results, sorted_code_counts):
+    
+    #definitely want to adjust these distance thresholds
     distance_threshold0 = 1.0
     distance_threshold1 = 1.25
-    distance_threshold2 = 1.5
+    distance_threshold2 = 5.0
 
    #print "Code counts: {} smallest: {} ".format(sorted_code_counts, sorted_code_counts[0][0])
     smallest_count = sorted_code_counts[0][1]
