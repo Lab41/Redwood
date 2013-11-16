@@ -134,68 +134,53 @@ class FilterPrevalence(RedwoodFilter):
         
 
     def run(self):
+
+        self.clean()
         self.build()
         cursor = self.cnx.cursor()
+        
+        cursor.execute(query)
+
+        #initialize the fp_scores table. The score is the average unless we don't have enough systems
+        #which is less than 3 for now, in which case we just set the score to .5
+        query = """
+            INSERT INTO  fp_scores(id, score)
+            SELECT unique_file_id, IF(num_systems < 3, .5, average) FROM global_file_prevalence
+        """
+        
+        cursor.execute(query)
+        self.cnx.commit()
+        
+
+        #adjustment for low outliers in high prevalent directories... This could probably better be done with taking the std dev of each
+        #dir, but his will have to work for now. beware duplication here... TODO
+        query = """
+            UPDATE  global_file_prevalence left join file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
+            LEFT JOIN global_dir_prevalence on file_metadata.unique_path_id = global_dir_prevalence.unique_path_id
+            LEFT JOIN global_dir_combined_prevalence on file_metadata.unique_path_id = global_dir_combined_prevalence.unique_path_id 
+            LEFT JOIN fp_scores ON fp_scores.id = global_file_prevalence.unique_file_id
+            SET fp_scores.score = fp_scores.score * .5 
+            where global_file_prevalence.num_systems > 2 and global_dir_combined_prevalence.average - global_file_prevalence.average > .6
+        """
        
-
-        query = ("INSERT INTO filter_prevalence(unique_file_id, count, num_systems, os_id) "
-                 "SELECT  t.unique_file_id, COUNT(unique_file_id)as count, t.num_systems, t.os_idd from "
-                 "(SELECT DISTINCT unique_file_id, media_source.id as src, s.os_idd, num_systems "
-                 "from file_metadata LEFT JOIN media_source ON (file_metadata.source_id = media_source.id) "
-                 "LEFT JOIN( select os.id as os_idd, os.name as os, COUNT(os.name) as num_systems "     
-                 "from os LEFT JOIN media_source ON(os.id = media_source.os_id) GROUP BY os.name ) s "              
-                 "ON (s.os_idd = file_metadata.os_id)) t "
-                 "GROUP BY t.os_idd, t.unique_file_id;")
-
-        cursor.execute(query)
-        
-      
-        cursor.execute("UPDATE filter_prevalence SET average =  (SELECT count/num_systems)")
-        cursor.execute("UPDATE filter_prevalence SET score = (SELECT IF(num_systems < 3, average * .3, average))")
-        self.cnx.commit()
-
-        query = """
-                INSERT into dir_prevalence(unique_path_id, avg_score, count)
-                    SELECT unique_path_id, average_score, t2.cnt from (SELECT unique_path_id, avg(average) as average_score from 
-                        (SELECT avg(score) as average, unique_path_id  FROM file_metadata 
-                            INNER JOIN filter_prevalence ON file_metadata.unique_file_id = filter_prevalence.unique_file_id 
-                            GROUP BY unique_path_id) as t 
-                        GROUP BY unique_path_id) as t0 inner join
-                        (SELECT COUNT(id) as cnt, unique_path_id as path_id 
-                    FROM file_metadata where file_name = '/' GROUP BY unique_path_id) as t2 on unique_path_id = t2.path_id
-        """
-
         cursor.execute(query)
         self.cnx.commit()
 
-        cursor.execute("DROP TABLE IF EXISTS fp_scores")
-
-        query = ("""CREATE TABLE IF NOT EXISTS `fp_scores` (
-                `id` bigint(20) unsigned NOT NULL,
-                `score` double DEFAULT NULL,
-                KEY `fk_unique_file1_id` (`id`),
-                CONSTRAINT `fk_unique_file1_id` FOREIGN KEY (`id`) 
-                REFERENCES `unique_file` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-                        ) ENGINE=InnoDB""")
-
-        cursor.execute(query)
-
+        #adjustments for low prevalent scored directories which occur often... hopefully this will exclude the caches
         query = """
-        INSERT INTO  fp_scores(id, score)
-            SELECT unique_file_id, score FROM filter_prevalence
+            UPDATE file_metadata 
+            LEFT JOIN global_dir_prevalence ON file_metadata.unique_path_id = global_dir_prevalence.unique_path_id 
+            LEFT JOIN global_dir_combined_prevalence ON global_dir_combined_prevalence.unique_path_id = global_dir_prevalence.unique_path_id
+            LEFT JOIN fp_scores ON file_metadata.unique_file_id = fp_scores.id
+            SET fp_scores.score = (1 - fp_scores.score) * .25 + fp_scores.score
+            where global_dir_prevalence.average > .8 AND global_dir_combined_prevalence.average < .5
         """
         
-        cursor.execute(query)
-
+        cursor.exceute(query)
+        self.cnx.commit()
         cursor.close()
 
-
-
-
     def update(self, source):
-        
-        self.build()
-        #this will not be thread safe... an update requires that no others write to the prevalence tables
         
         cursor = self.cnx.cursor()
 
@@ -209,145 +194,69 @@ class FilterPrevalence(RedwoodFilter):
         source_id = r[0]
         os_id = r[1]
 
-
-        #check if we have already analyzed this source
-        cursor.execute("""SELECT count(*) from fp_analyzed_sources where id = '{}'""".format(source_id))
-        found = cursor.fetchone()
-
-        if found[0] > 0:
-            print "already analyzed source {}".format(source)
-            return
-        else:
-            query = "insert into fp_analyzed_sources (id, name) VALUES('{}','{}')".format(source_id, source)
-            cursor.execute(query)
-            self.cnx.commit()
-
         print "Evaluating {} ".format(source)
- 
-        #will need to fetch the number of systems first for the given os
-        query = """
-            select COUNT(os.name) from os LEFT JOIN media_source ON(os.id = media_source.os_id) 
-            where os.id = {} GROUP BY os.name 
-        """.format(os_id)
-
-        cursor.execute(query)
-        num_systems = cursor.fetchone()[0]
-
-        print "Num Systems: {}".format(num_systems)
-
-        #if the os has never been seen by the filter, then just insert straight up
-        query =  """
-            INSERT INTO filter_prevalence(unique_file_id, count, num_systems, os_id)
-            SELECT  t.unique_file_id, COUNT(unique_file_id) as count, t.num_systems, t.os_idd from
-            (SELECT DISTINCT unique_file_id, media_source.id as src, s.os_idd, num_systems
-            from file_metadata JOIN media_source ON (file_metadata.source_id = media_source.id)
-            LEFT JOIN( select os.id as os_idd, os.name as os, COUNT(os.name) as num_systems     
-            from os LEFT JOIN media_source ON(os.id = media_source.os_id) where os.id = {} GROUP BY os.name ) s              
-            ON (s.os_idd = file_metadata.os_id) where media_source.id = {}) t GROUP BY t.os_idd, t.unique_file_id
-	    ON DUPLICATE KEY UPDATE  filter_prevalence.num_systems={}, count=count+1
-        """.format(os_id, source_id, num_systems)
         
-        cursor.execute(query)
-
+        #initial insert
         query = """
-            UPDATE filter_prevalence SET average =  (SELECT count/num_systems), 
-            score = (SELECT IF(num_systems < 3, average * .3, average))
+            INSERT INTO  fp_scores(id, score)
+            SELECT global_file_prevalence.unique_file_id, IF(num_systems < 3, .5, average) 
+            FROM global_file_prevalence JOIN file_metadata
+            ON file_metadata.unique_file_id = global_file_prevalence.unique_file_id
+            where file_metadata.source_id = 4
+            ON DUPLICATE KEY UPDATE score = IF(num_systems < 3, .5, average)
         """
-        
-        cursor.excecute(query)
-        self.cnx.commit()
-
 
         cursor.execute(query)
-        
         self.cnx.commit()
-        #=========dir_prevalence table=================
-        #update just those rows that have a similar unique_path_id
-         
-        cursor.close()
-
-    def table_exists(self):
-        cursor = self.cnx.cursor()
-        result = None
-        try:
-            cursor.execute("select COUNT(id) from filter_prevalence")
-            result = cursor.fetchone()
-            cursor.close()
-        except Exception as err:
-            pass
-
+        
+        #adjustment for low outliers in high prevalent directories... This could probably better be done with taking the std dev of each
+        #dir, but his will have to work for now.  
+        query = """
+            UPDATE  global_file_prevalence left join file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
+            LEFT JOIN global_dir_prevalence on file_metadata.unique_path_id = global_dir_prevalence.unique_path_id
+            LEFT JOIN global_dir_combined_prevalence on file_metadata.unique_path_id = global_dir_combined_prevalence.unique_path_id 
+            LEFT JOIN fp_scores ON fp_scores.id = global_file_prevalence.unique_file_id
+            SET fp_scores.score = fp_scores.score * .5 
+            where file_metadata.source_id = {} AND global_file_prevalence.count = 1 and global_file_prevalence.num_systems > 2 
+            and global_dir_combined_prevalence.average - global_file_prevalence.average > .6
+        """.format(source_id)
        
-        if(result == None or result[0] == 0):
-            return False
-        else: 
-            return True
+        cursor.execute(query)
+        self.cnx.commit()
+
+        #adjustments for low prevalent scored directories which occur often... hopefully this will exclude the caches
+        query = """
+            UPDATE file_metadata 
+            LEFT JOIN global_dir_prevalence ON file_metadata.unique_path_id = global_dir_prevalence.unique_path_id 
+            LEFT JOIN global_dir_combined_prevalence ON global_dir_combined_prevalence.unique_path_id = global_dir_prevalence.unique_path_id
+            LEFT JOIN fp_scores ON file_metadata.unique_file_id = fp_scores.id
+            SET fp_scores.score = (1 - fp_scores.score) * .25 + fp_scores.score
+            where file_metadata.source_id = {} AND global_dir_prevalence.average > .8 AND global_dir_combined_prevalence.average < .5
+        """.format(source_id)
+        
+        cursor.execute(query)
+        self.cnx.commit()
+        cursor.close()
 
     def clean(self):
          
         cursor = self.cnx.cursor() 
-        cursor.execute("DROP TABLE IF EXISTS filter_prevalence")
-        cursor.execute("DROP TABLE IF EXISTS dir_prevalence")
-        cursor.execute("DROP TABLE IF EXISTS fp_analyzed_sources")
+        cursor.execute("DROP TABLE IF EXISTS fp_scores")
         self.cnx.commit()
-
 
     def build(self):
         
-        print "Building the staging tables"
-       
-        cursor = self.cnx.cursor()
-
         query = """
-            CREATE TABLE IF NOT EXISTS fp_analyzed_sources (
-            id INT UNSIGNED NOT NULL,
-            name VARCHAR(45) NOT NULL,
+            CREATE TABLE IF NOT EXISTS `fp_scores` (
+            id BIGINT unsigned NOT NULL,
+            score double DEFAULT NULL,
             PRIMARY KEY(id),
-            CONSTRAINT fk_media_source_id1 FOREIGN KEY (id)
-            REFERENCES media_source(id)
-            ON DELETE NO ACTION ON UPDATE NO ACTION
-            ) ENGINE=InnoDB;
+            CONSTRAINT `fk_unique_file1_id` FOREIGN KEY (`id`) 
+            REFERENCES `unique_file` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+                     ) ENGINE=InnoDB
         """
-        
+ 
         cursor.execute(query)
         
-        query = """
-            CREATE TABLE IF NOT EXISTS filter_prevalence (
-            unique_file_id BIGINT UNSIGNED NOT NULL,
-            score DOUBLE NOT NULL DEFAULT .5,
-            average DOUBLE NOT NULL DEFAULT .5,
-            count INT NOT NULL DEFAULT 0,
-            num_systems INT NOT NULL DEFAULT 0,
-            os_id INT UNSIGNED NOT NULL,
-            PRIMARY KEY(unique_file_id, os_id),
-            INDEX fk_unique_file_idx (unique_file_id),
-            INDEX fk_os_id_idx (os_id),
-            INDEX score_idx USING BTREE (score ASC),
-            CONSTRAINT fk_unique_file_idx FOREIGN KEY(unique_file_id)
-            REFERENCES unique_file (id)
-            ON DELETE NO ACTION ON UPDATE NO ACTION,
-            CONSTRAINT fk_os_id_idx FOREIGN KEY(os_id)
-            REFERENCES os (id)
-            ON DELETE NO ACTION ON UPDATE NO ACTION
-            ) ENGINE = InnoDB;
-        """
-      
-        cursor.execute(query)
-        
-        #gets the average prevalence for a unique path based on the average
-        #of the individual dir prevalence across all systems
-        query = """
-            CREATE TABLE IF NOT EXISTS dir_prevalence (
-            unique_path_id INT UNSIGNED NOT NULL,
-            avg_score DOUBLE NOT NULL DEFAULT .5,
-	    count INT NOT NULL DEFAULT 0,                
-	    PRIMARY KEY(unique_path_id),
-            INDEX fk_unique_path_id_idx(unique_path_id),
-            CONSTRAINT fk_unique_path_id_idx FOREIGN KEY(unique_path_id)
-            REFERENCES unique_path (id)
-            ON DELETE NO ACTION ON UPDATE NO ACTION
-            ) ENGINE = InnoDB
-        """
-        
-        cursor.execute(query)
         self.cnx.commit()
         cursor.close()

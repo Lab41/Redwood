@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 import MySQLdb
 from redwood.foundation.prevalence import PrevalenceAnalyzer
+from redwood.filters import plugins
 
 
 def db_load_file(connection, path):
@@ -28,7 +29,7 @@ def db_load_file(connection, path):
     cursor = connection.cursor()
     os_id = None
 
-
+    source_name = fields[2]
 
     #transaction for adding to media and os tables. Both succeed or both fail
     try:
@@ -118,7 +119,7 @@ def db_load_file(connection, path):
     print "\t[*] completed in {}".format(total_time)
     cursor.close()
     
-    return (os_id, source_id)
+    return (source_id, source_name, os_id)
 
 def run(cnx, path):
 
@@ -153,4 +154,13 @@ def run(cnx, path):
     pu = PrevalenceAnalyzer(cnx)
     pu.update(src_os_list)
 
+    #set the cnx for each plugin
+    for p in plugins:
+        p.cnx = cnx
 
+    print "[*] Beginning filter analysis"
+    for src_id, source_name, os_id in src_os_list:
+        print "...source {}".format(src_id)
+        for p in plugins:
+            print "......filter {}".format(p.name)
+            p.update(source_name)

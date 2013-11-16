@@ -115,6 +115,22 @@ class RedwoodFilter(object):
         return l;
 
 
+    def table_exists(self, name):
+        cursor = self.cnx.cursor()
+        result = None
+        try:
+            cursor.execute("select COUNT(id) from {}".format(name))
+            result = cursor.fetchone()
+            cursor.close()
+        except Exception as err:
+            pass
+
+       
+        if(result == None or result[0] == 0):
+            return False
+        else: 
+            return True
+
 
 
 

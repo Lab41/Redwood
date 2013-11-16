@@ -13,13 +13,8 @@ class PrevalenceAnalyzer():
         cursor = self.cnx.cursor()
         
         #iterate through each of the new sources, updating the prevalence table accordingly
-        for pair in source_os_list:
+        for source_id, source_name, os_id in source_os_list:
             
-            #TODO: make sure you don't add a source that already has been analyzed
-
-            source_id = pair[0]
-            os_id = pair[1]
-
             #will need to fetch the number of systems first for the given os
             query = """
                 select COUNT(os.name) from os LEFT JOIN media_source ON(os.id = media_source.os_id) 
@@ -75,6 +70,8 @@ class PrevalenceAnalyzer():
             query = """
                 UPDATE global_dir_prevalence SET num_systems = {}, average = (SELECT count/num_systems) where os_id = {}
             """.format(num_systems, os_id)
+
+            cursor.execute(query)
 
             self.cnx.commit()
 
