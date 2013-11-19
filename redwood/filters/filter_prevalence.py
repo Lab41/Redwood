@@ -8,6 +8,7 @@ class FilterPrevalence(RedwoodFilter):
 
     def __init__(self):
         self.name = "Prevalence"
+        self.score_table = "fp_scores"
         self.cnx = None         
 
     def usage(self):
@@ -33,7 +34,6 @@ class FilterPrevalence(RedwoodFilter):
         num_systems = results[0]
         print num_systems
 
-        print "running prevalence anaylsis..."
         cursor = self.cnx.cursor()
         
         query = ("SELECT count FROM filter_prevalence where os_id = "
@@ -181,7 +181,12 @@ class FilterPrevalence(RedwoodFilter):
         cursor.close()
 
     def update(self, source):
-        
+ 
+        print "[+] Prevalence Filter running on {} ".format(source)
+
+        #creates the basic tables if they do not exist
+        self.build()
+
         cursor = self.cnx.cursor()
 
         cursor.execute("SELECT id, os_id from media_source where name = '{}'".format(source))
@@ -194,7 +199,6 @@ class FilterPrevalence(RedwoodFilter):
         source_id = r[0]
         os_id = r[1]
 
-        print "Evaluating {} ".format(source)
         
         #initial insert
         query = """
@@ -202,9 +206,9 @@ class FilterPrevalence(RedwoodFilter):
             SELECT global_file_prevalence.unique_file_id, IF(num_systems < 3, .5, average) 
             FROM global_file_prevalence JOIN file_metadata
             ON file_metadata.unique_file_id = global_file_prevalence.unique_file_id
-            where file_metadata.source_id = 4
+            where file_metadata.source_id = {}
             ON DUPLICATE KEY UPDATE score = IF(num_systems < 3, .5, average)
-        """
+        """.format(source_id)
 
         cursor.execute(query)
         self.cnx.commit()
@@ -245,7 +249,9 @@ class FilterPrevalence(RedwoodFilter):
         self.cnx.commit()
 
     def build(self):
-        
+ 
+        cursor = self.cnx.cursor()
+       
         query = """
             CREATE TABLE IF NOT EXISTS `fp_scores` (
             id BIGINT unsigned NOT NULL,
@@ -256,7 +262,6 @@ class FilterPrevalence(RedwoodFilter):
                      ) ENGINE=InnoDB
         """
  
-        cursor.execute(query)
-        
+        cursor.execute(query)   
         self.cnx.commit()
         cursor.close()

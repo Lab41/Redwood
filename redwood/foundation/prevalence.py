@@ -8,7 +8,7 @@ class PrevalenceAnalyzer():
         
         self.build()
         
-        print "...Calculating prevalence of newly add sources"
+        print "[+] Conducting global analysis for prevalence"
 
         cursor = self.cnx.cursor()
         
@@ -24,20 +24,18 @@ class PrevalenceAnalyzer():
             cursor.execute(query)
             num_systems = cursor.fetchone()[0]
 
-            print "Num Systems: {}".format(num_systems)
-            
             #this query will either insert a new entry into the table or update an existing ones
             #This will only get prevalence of files, NOT directories since all directories have the same zero
             #contents hash. We exclude dirs by checking file size != 0, though some dirs slip through with larger file sizes
-            query =  """
+            query = """
                 INSERT INTO global_file_prevalence(unique_file_id, count, num_systems, os_id)
                 SELECT  t.unique_file_id, COUNT(unique_file_id) as count, t.num_systems, t.os_idd from
                 (SELECT DISTINCT unique_file_id, media_source.id as src, s.os_idd, num_systems
                 from file_metadata JOIN media_source ON (file_metadata.source_id = media_source.id)
                 LEFT JOIN( select os.id as os_idd, os.name as os, COUNT(os.name) as num_systems     
                 from os LEFT JOIN media_source ON(os.id = media_source.os_id) 
-                WHERE os.id = {} GROUP BY os.name ) s              
-                ON (s.os_idd = file_metadata.os_id) where media_source.id = {} AND file_metadata.size != 0) t 
+                WHERE os.id = {}  GROUP BY os.name ) s              
+                ON (s.os_idd = file_metadata.os_id) where media_source.id = {} AND file_metadata.unique_file_id is not null) t 
                 GROUP BY t.os_idd, t.unique_file_id
                 ON DUPLICATE KEY UPDATE  count=count+1
             """.format(os_id, source_id)
@@ -76,7 +74,7 @@ class PrevalenceAnalyzer():
             self.cnx.commit()
 
         #TODO: There should be a better way for below code 
-        print "Rebuilding the aggregated prevalence table for directories"
+        print "[+] Rebuilding the aggregated prevalence table for directories"
     
         cursor.execute("DROP TABLE IF EXISTS global_dir_combined_prevalence")
 
@@ -117,8 +115,6 @@ class PrevalenceAnalyzer():
 
     def build(self):
         
-        print "Building the staging tables"
-       
         cursor = self.cnx.cursor()
 
         query = """

@@ -134,6 +134,7 @@ class LocalityUniqueness(RedwoodFilter):
 
     def __init__(self, cnx=None):
         self.cnx = cnx
+        self.score_table = "lu_scores"
         self.name = "Locality Uniqueness"
 
     def usage(self):
@@ -152,7 +153,7 @@ class LocalityUniqueness(RedwoodFilter):
 
         :param source: media source name
         """
-        
+        print "[+] Locality Uniqueness Filter running on {}".format(source)
         self.build()
         self.evaluate_source(source, 3)
        
@@ -297,9 +298,9 @@ class LocalityUniqueness(RedwoodFilter):
             query = "insert into lu_analyzed_sources (id, name) VALUES('{}','{}')".format(source_id, source_name)
             cursor.execute(query)
             self.cnx.commit()
-            print "Evaluating {} ".format(source_name)
         #returns all files sorted by directory for the given source
-        query = ("""SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash 
+        query = ("""
+                SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash 
                 FROM joined_file_metadata 
                 where source_id = {} order by parent_id asc""").format(source_id)
         
@@ -361,10 +362,14 @@ class LocalityUniqueness(RedwoodFilter):
 
 
         print "...updating scores on the server"
-        query = ("""INSERT INTO lu_scores
-                    (SELECT file_metadata.unique_file_id, avg(locality_uniqueness.score) FROM 
-                    locality_uniqueness LEFT JOIN file_metadata on (locality_uniqueness.file_metadata_id = file_metadata.id) 
-                    GROUP BY file_metadata.unique_file_id)""")            
+        query = """
+            INSERT INTO lu_scores
+            (SELECT file_metadata.unique_file_id, avg(locality_uniqueness.score) FROM 
+            locality_uniqueness LEFT JOIN file_metadata on (locality_uniqueness.file_metadata_id = file_metadata.id) 
+            WHERE file_metadata.unique_file_id is not null
+            GROUP BY file_metadata.unique_file_id)
+            """
+                        
        
         cursor.execute(query)
         self.cnx.commit()

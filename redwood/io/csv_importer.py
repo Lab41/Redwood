@@ -14,23 +14,23 @@ def db_load_file(connection, path):
     try:
         with open(path): pass
     except IOError:
-        print 'File \'{}\' does not exist'.format(path)
+        print '*** Error: File \'{}\' does not exist'.format(path)
         return
     
     start_time = time.time()
-    print "...Loading file \"{}\"".format(path)
 
     filename = os.path.basename(path)
     fields = string.split(filename, '--')
 
     if(len(fields) != 3):
-        print "Error: Improper naming scheme"
+        print "*** Error: Improper naming scheme"
         return
     cursor = connection.cursor()
     os_id = None
 
     source_name = fields[2]
 
+    print "=== Loading \"{}\" into database ===".format(source_name)
     #transaction for adding to media and os tables. Both succeed or both fail
     try:
 
@@ -40,23 +40,19 @@ def db_load_file(connection, path):
 
         #add os 
         add_os = ("INSERT INTO `os` (name) VALUES('%(name)s') ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)") % data_os
-
         cursor.execute(add_os)
-        
         connection.commit()
-
-    
         
     except MySQLdb.Error, e:
         if connection:
             connection.rollback()                       
-            print "Error %d: %s" % (e.args[0],e.args[1])
+            print "*** Error %d: %s" % (e.args[0],e.args[1])
             return                                        
 
     os_id = cursor.lastrowid
     
     if(os_id is None):
-        print "Unable to find corresponding os"
+        print "*** Error: Unable to find corresponding os"
         return
 
     try:
@@ -69,8 +65,6 @@ def db_load_file(connection, path):
             'os_id':os_id,
         }
 
-
-
         #add the media source
         add_media_source = ("INSERT INTO `media_source` (reputation, name, date_acquired, os_id) "
                             "VALUES(0, '%(name)s', '%(date_acquired)s', '%(os_id)s') ") % data_media_source
@@ -82,12 +76,11 @@ def db_load_file(connection, path):
     except MySQLdb.Error, e:
         if connection:
             connection.rollback()                       
-            print "Error %d: %s" % (e.args[0],e.args[1])
+            print "*** Error %d: %s" % (e.args[0],e.args[1])
             return                                        
 
     media_source_id = cursor.lastrowid
     
-
     path = path.replace('\\','\\\\')
     #load raw csv into the staging table from the client
     add_staging_table = ("LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table` "
@@ -116,7 +109,7 @@ def db_load_file(connection, path):
         return
     
     total_time =  time.time() - start_time
-    print "\t[*] completed in {}".format(total_time)
+    print "...completed in {}".format(total_time)
     cursor.close()
     
     return (source_id, source_name, os_id)
@@ -127,7 +120,7 @@ def run(cnx, path):
     src_os_list = list()
 
     if(path == None):
-        print "Path is required"
+        print "*** Error: Path is required"
         return
     
     if(os.path.isfile(path)):
@@ -146,10 +139,6 @@ def run(cnx, path):
         print 'Please input a valid file or a directory for import'
         return
 
-    
-    print "source os"
-    print src_os_list
-
     #now let's run the prevalence analyzer
     pu = PrevalenceAnalyzer(cnx)
     pu.update(src_os_list)
@@ -158,9 +147,7 @@ def run(cnx, path):
     for p in plugins:
         p.cnx = cnx
 
-    print "[*] Beginning filter analysis"
     for src_id, source_name, os_id in src_os_list:
-        print "...source {}".format(src_id)
+        print "==== Beginning filter analysis of {} ====".format(source_name)
         for p in plugins:
-            print "......filter {}".format(p.name)
             p.update(source_name)

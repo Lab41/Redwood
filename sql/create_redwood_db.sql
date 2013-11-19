@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS unique_file (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     hash CHAR(40) NOT NULL,
     reputation DOUBLE NOT NULL DEFAULT .5,
-    prevalence_count INT NULL DEFAULT 1,
     PRIMARY KEY (id),
     UNIQUE INDEX hash_UNIQUE (hash ASC)
 )  ENGINE=InnoDB;
@@ -37,11 +36,9 @@ CREATE TABLE IF NOT EXISTS unique_path (
 )  ENGINE=InnoDB;
 
 
-
-
 CREATE TABLE IF NOT EXISTS file_metadata (
     id BIGINT UNSIGNED UNIQUE NOT NULL,
-    unique_file_id BIGINT UNSIGNED NOT NULL,
+    unique_file_id BIGINT UNSIGNED NULL,
     source_id INT UNSIGNED NOT NULL,
     unique_path_id INT UNSIGNED NOT NULL,
 	parent_id BIGINT UNSIGNED NULL,
