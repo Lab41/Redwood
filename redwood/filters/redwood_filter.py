@@ -3,11 +3,15 @@ import pylab
 import numpy as np
 import matplotlib
 import array
+from collections import namedtuple
+
+SourceInfo = namedtuple('SourceInfo', 'source_id source_name os_id os_name')
 
 class RedwoodFilter(object):
     def __init__(self):
         self.name = "generic"
         self.cnx = None    
+
     def run(self):
         print "running default"
     def clean(self):
@@ -69,18 +73,52 @@ class RedwoodFilter(object):
         plt.xlabel(xlabel)
         plt.show()
 
-    def visualize_histogram(self, data, centroids, xlabel, ylabel):
+    def visualize_histogram(self, data, centroids=None, xlabel=None, ylabel=None):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax_cluster = fig.add_subplot(111)
-
         ax.hist(data, color = 'b')
-        ax_cluster.hist(centroids, color = 'g')
+        
+        if centroids is not None:
+            ax_cluster = fig.add_subplot(111)
+            ax_cluster.hist(centroids, color = 'g')
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         plt.show()
 
 
+    def get_source_info(self, source_name):
+        
+        cursor = self.cnx.cursor()
+        
+        query = """
+            SELECT media_source.id as source_id, media_source.name as source_name, os.id as os_id, os.name as os_name
+            FROM redwood.media_source LEFT JOIN os ON media_source.os_id = os.id where media_source.name = "{}";
+        """.format(source_name)
+        
+        cursor.execute(query)
+        r =  cursor.fetchone()
+        return SourceInfo(r[0], r[1], r[2],r[3])
+
+    def get_num_systems(self, os_name_or_id):
+        """
+
+        """
+
+        if os_name_or_id.isdigit() is False:
+           os_id = "(SELECT DISTINCT os.id from os where os.name = \"{}\")".format(os_name_or_id)
+
+        cursor = self.cnx.cursor()
+        
+        query = """
+            SELECT COUNT(media_source.id) FROM os 
+            LEFT JOIN media_source ON os.id = media_source.os_id
+            WHERE os.id = {}
+            GROUP BY os.id
+        """.format(os_id)
+        
+        cursor.execute(query)
+        r = cursor.fetchone()
+        return r[0]
 
     def get_source_id(self, source_name):
         

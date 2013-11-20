@@ -1,10 +1,36 @@
-from redwood.filters.redwood_filter import RedwoodFilter
+#!/usr/bin/env python
+#
+# Copyright (c) 2013 In-Q-Tel, Inc/Lab41, All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+"""
+This filter provides analysis and scoring based on the prevalence of files and directories
+
+Created on 19 October 2013
+@author: Paul
+"""
+
+from redwood.filters.redwood_filter import *
 import numpy as np
 import matplotlib.pyplot as plt
 
 class FilterPrevalence(RedwoodFilter):
 
-    
+    """
+    This FilterPrevalence class provides the "Prevalence" filter functionality
+    """
 
     def __init__(self):
         self.name = "Prevalence"
@@ -12,54 +38,99 @@ class FilterPrevalence(RedwoodFilter):
         self.cnx = None         
 
     def usage(self):
+        
         print "view_high <count>"
         print "\t-displays top <count> scores for this filter"
         print "view_low <count>"
         print "\t-displays lowest <count> score for this filter"
+        print "histogram_by_source <source_name>"
+        print "\t-view file distribution for a single source with name <source_name>"
+        print "histogram_by_os <os_name>"
+        print "\t-view file distribution for an os"
 
-    def discover_histogram(self, os_type):
-        if(self.table_exists() == False):
-            self.run()
-        
-        
 
+    def discover_histogram_by_os(self, os_name):
+        """
+        Displays a histogram of the file distributions across all systems
+        of the specified OS
+
+        :param os_name: name of the operating system
+        """
+       
+
+        #TODO: we can speed this up considerably by doing the counts on the db then
+        #just displaying a bar graph.  Currently having the hist function ingest
+        #large numbers of points can take way to long
+
+        print '[+] Running \"Histogram by OS\"..."'
         cursor = self.cnx.cursor()
-        #first get the count for this os
-        query = ("select COUNT(id) from media_source where os_id = "
-                "(SELECT id from os where (name = '{}'))").format(os_type)
+        
+        query = """
+            SELECT global_file_prevalence.unique_file_id, global_file_prevalence.count 
+            FROM redwood.global_file_prevalence LEFT JOIN file_metadata 
+            ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id 
+            WHERE file_metadata.os_id = (SELECT os.id FROM os where os.name = "{}")
+        """.format(os_name)
 
         cursor.execute(query)
-        results = cursor.fetchone()
 
-        num_systems = results[0]
-        print num_systems
-
-        cursor = self.cnx.cursor()
-        
-        query = ("SELECT count FROM filter_prevalence where os_id = "
-          "(SELECT id from os where (name = '{}'))").format(os_type)
-
-        cursor.execute(query)
-        
-        li = [x[0] for x in cursor.fetchall()]
+        li = [x[1] for x in cursor.fetchall()]
         cursor.close()
+        num_systems = self.get_num_systems(os_name)
 
-        bins = list()
-        i = 1
-        while(i <= num_systems):
-            bins.insert(i, i)
-            i+=1
+        print "NumSystems: {}".format(num_systems)
+
+        bins = range(1, num_systems+2)
         fig = plt.figure()
-        ax = fig.add_subplot(111)
-        pdf, bins, patches = ax.hist(li, bins=bins)
-        ax.set_xlabel("systems")
-        ax.set_ylabel("file occurences")
-        ax.set_xlim(1, num_systems)
+        ax = fig.add_subplot(111, title="File Prevalence of {}".format(os_name))
+        ax.hist(li, color = 'b', bins = bins)
+        ax.set_xlabel("Num of Systems")
+        ax.set_ylabel("File Occurrences")
+    
         plt.show()
 
 
-    def discover_directory_prev(self, refresh, count, direction):
+    def discover_histogram_by_source(self, source_name):
+        """
+        Displays a histogram of the file distribution of a single source as it relates
+        to all occurrences of that file across all systems
+
+        :param source_name: The name of the souce 
+        """
+
+        print '[+] Running \"Histogram by Source\"...'
+        cursor = self.cnx.cursor()
+       
+        src_info = self.get_source_info(source_name)
+          
+        query = """
+            SELECT global_file_prevalence.unique_file_id, global_file_prevalence.count 
+            FROM redwood.global_file_prevalence LEFT JOIN file_metadata 
+            ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id WHERE file_metadata.source_id = {}
+        """.format(src_info.source_id)
         
+        cursor.execute(query)
+        li = [x[1] for x in cursor.fetchall()]
+        cursor.close()
+        num_systems = self.get_num_systems(src_info.os_id)
+        bins = range(1, num_systems+2)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, title="File Prevalence of {}".format(src_info.source_name))
+        ax.hist(li, color = 'b', bins = bins)
+        ax.set_xlabel("Num of Systems")
+        ax.set_ylabel("File Occurrences")
+    
+        plt.show()
+
+
+    def discover_directory_prevalence(self, count, direction):
+        """
+        Shows the top or bottom <count> directories based on prevalence analysis
+
+        :param count: the number to display from the top or bottom
+        :param direction: either \"top\" or \"bottom\"
+        """
+
         cursor = self.cnx.cursor()
 
         if refresh is 'true':
