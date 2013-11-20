@@ -19,7 +19,7 @@
 This filter provides analysis and scoring based on the prevalence of files and directories
 
 Created on 19 October 2013
-@author: Paul
+@author: Lab41
 """
 
 from redwood.filters.redwood_filter import *
@@ -27,9 +27,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class FilterPrevalence(RedwoodFilter):
-
     """
-    This FilterPrevalence class provides the "Prevalence" filter functionality
+    This FilterPrevalence class uses the occurences of files across systems to 
+    assign a reputation score to each unique file
     """
 
     def __init__(self):
@@ -39,15 +39,21 @@ class FilterPrevalence(RedwoodFilter):
 
     def usage(self):
         
-        print "view_high <count>"
-        print "\t-displays top <count> scores for this filter"
-        print "view_low <count>"
-        print "\t-displays lowest <count> score for this filter"
-        print "histogram_by_source <source_name>"
-        print "\t-view file distribution for a single source with name <source_name>"
-        print "histogram_by_os <os_name>"
-        print "\t-view file distribution for an os"
-
+        print "[+] view_by_source <direction> <count> <source> <out_file>"
+        print "--- Lists the highest or lowest prevalent files by their average in the specified order"
+        print "\t- direction: either \"top\" or \"bottom\""
+        print "\t- count: number or results to return from the direction"
+        print "\t- source: name of the source"
+        print "\t- out_file: file to write results to"
+        print "[+] histogram_by_source <source_name>"
+        print "---view histogram of file distribution for a single source with name <source_name>"
+        print "\t- source_name: name of the source"
+        print "[+] histogram_by_os <os_name>"
+        print "---view file distribution for an os"
+        print "\t- os_name: name of the os"
+        print "[+] detect_anomalies <source_name> <out_file>"
+        print "---view the top anomalies for the given source"
+        print "\t-out_file:  file to write results to"
 
     def discover_histogram_by_os(self, os_name):
         """
@@ -57,7 +63,6 @@ class FilterPrevalence(RedwoodFilter):
         :param os_name: name of the operating system
         """
        
-
         #TODO: we can speed this up considerably by doing the counts on the db then
         #just displaying a bar graph.  Currently having the hist function ingest
         #large numbers of points can take way to long
@@ -123,7 +128,7 @@ class FilterPrevalence(RedwoodFilter):
         plt.show()
 
 
-    def discover_list_by_source(self, direction, count, source, out):
+    def discover_view_by_source(self, direction, count, source, out):
         """
         Displays avg file prevalence in orderr for a given source
 
@@ -132,7 +137,7 @@ class FilterPrevalence(RedwoodFilter):
         :param out: file to write results to 
         """
 
-        print "[+] Running list_by_source"
+        print "[+] Running list_by_source..."
         cursor = self.cnx.cursor()
         dir_val = ("desc" if direction is "top" else  "asc")
          
@@ -149,66 +154,62 @@ class FilterPrevalence(RedwoodFilter):
         with open (out, "w") as f:
             v = 0
             for x in cursor.fetchall():
-                f.write("{}:{}   {}{}\n".format(v, x[0], x[1], x[2]))
+                f.write("{}: {}   {}{}\n".format(v, x[0], x[1], x[2]))
                 v += 1 
         
         cursor.close()
  
 
-    def discover_anomalies(self, source):
-        pass
+    def discover_detect_anomalies(self, source, out):
+        """
+        Conducts an anomaly search on a given source
+
+        :param source: source
+        """
         
-
-
-    def run(self):
-
-        self.clean()
-        self.build()
         cursor = self.cnx.cursor()
+
+        src_info = self.get_source_info(source)
         
+        if src_info is None:
+            print "*** Error: Source not found"
+            return
+
+        #anomaly type:  low prevalence files in normally high prevalence directories
+        print "Anomaly Detection: Unique files in common areas"
+        print "running..."
+         
+        query = """
+            SELECT (global_dir_combined_prevalence.average - global_file_prevalence.average) as difference, 
+            unique_path.full_path, file_metadata.file_name
+            FROM global_file_prevalence 
+            LEFT JOIN file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
+            LEFT JOIN global_dir_combined_prevalence ON file_metadata.unique_path_id = global_dir_combined_prevalence.unique_path_id
+            LEFT JOIN unique_path ON file_metadata.unique_path_id = unique_path.id
+            where file_metadata.source_id = {}
+            HAVING difference > 0
+            ORDER BY difference desc limit 0, 500
+        """.format(src_info.source_id)
+
+
         cursor.execute(query)
 
-        #initialize the fp_scores table. The score is the average unless we don't have enough systems
-        #which is less than 3 for now, in which case we just set the score to .5
-        query = """
-            INSERT INTO  fp_scores(id, score)
-            SELECT unique_file_id, IF(num_systems < 3, .5, average) FROM global_file_prevalence
-        """
-        
-        cursor.execute(query)
-        self.cnx.commit()
-        
-
-        #adjustment for low outliers in high prevalent directories... This could probably better be done with taking the std dev of each
-        #dir, but his will have to work for now. beware duplication here... TODO
-        query = """
-            UPDATE  global_file_prevalence left join file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
-            LEFT JOIN global_dir_prevalence on file_metadata.unique_path_id = global_dir_prevalence.unique_path_id
-            LEFT JOIN global_dir_combined_prevalence on file_metadata.unique_path_id = global_dir_combined_prevalence.unique_path_id 
-            LEFT JOIN fp_scores ON fp_scores.id = global_file_prevalence.unique_file_id
-            SET fp_scores.score = fp_scores.score * .5 
-            where global_file_prevalence.num_systems > 2 and global_dir_combined_prevalence.average - global_file_prevalence.average > .6
-        """
-       
-        cursor.execute(query)
-        self.cnx.commit()
-
-        #adjustments for low prevalent scored directories which occur often... hopefully this will exclude the caches
-        query = """
-            UPDATE file_metadata 
-            LEFT JOIN global_dir_prevalence ON file_metadata.unique_path_id = global_dir_prevalence.unique_path_id 
-            LEFT JOIN global_dir_combined_prevalence ON global_dir_combined_prevalence.unique_path_id = global_dir_prevalence.unique_path_id
-            LEFT JOIN fp_scores ON file_metadata.unique_file_id = fp_scores.id
-            SET fp_scores.score = (1 - fp_scores.score) * .25 + fp_scores.score
-            where global_dir_prevalence.average > .8 AND global_dir_combined_prevalence.average < .5
-        """
-        
-        cursor.exceute(query)
-        self.cnx.commit()
+        with open(out, "w") as f:
+            v=0
+            for x in cursor.fetchall():
+                f.write("{}: {}    {}{}".format(v))
+                v+=1
+             
         cursor.close()
 
+
     def update(self, source):
- 
+        """
+        Updates the scores of the fp_scores table with the new data from the inputted source
+
+        :param source: identifier for the source to be updated
+        """
+
         print "[+] Prevalence Filter running on {} ".format(source)
 
         #creates the basic tables if they do not exist
@@ -270,13 +271,18 @@ class FilterPrevalence(RedwoodFilter):
         cursor.close()
 
     def clean(self):
-         
+        """
+        Cleans all tables associated with this filter
+        """
         cursor = self.cnx.cursor() 
         cursor.execute("DROP TABLE IF EXISTS fp_scores")
         self.cnx.commit()
 
     def build(self):
- 
+        """
+        Builds all persistent tables associated with this filter
+        """
+
         cursor = self.cnx.cursor()
        
         query = """

@@ -20,7 +20,7 @@ This Filter provides analysis and scoring based on feature clusters of individua
 directories of files from media sources
 
 Created on 19 October 2013
-@author: Paul
+@author: Lab41
 """
 
 
@@ -41,8 +41,18 @@ import Queue
 
 warnings.filterwarnings('ignore')
 
+#NOTE: the find_anomalies and do_eval functions are outside the class so that we
+#can run them in parallel using the apply_async function for thread pools
+
 def find_anomalies(rows, sorted_results, sorted_code_counts):
-    
+    """
+    Helper function that given a list of results from kmeans will assign
+    scores to each file given their distance form their centroid
+
+    :param rows: output rows to append to
+    :param sorted_rows: results from kmeans sorted
+    :sorted_code_counts: centroids sorted by number of observations
+    """
     #definitely want to adjust these distance thresholds
     distance_threshold0 = 1.0
     distance_threshold1 = 1.25
@@ -74,7 +84,21 @@ def find_anomalies(rows, sorted_results, sorted_code_counts):
 
 
 def do_eval(rows, full_path, files, num_clusters, num_features):
+    """
+    Helper function that analyzes a directory, looking for outliers in clusters based on the input features.
+    Currently, only two static features are analyzed, however future versions could allow
+    for selectable set of features
+
+    :param rows: output variable to append results to
+    :param full_path: the path that is being analyzed
+    :param files: meta data for files in the directory
+    :param num_clusters: number of clusters to specify for kmeans
+    :param num_features: number of features included
     
+    :return: nothing... use the rows input as an output to append to
+    """
+    
+
     srt = time.time()
     num_obs = len(files)
    
@@ -133,7 +157,6 @@ class LocalityUniqueness(RedwoodFilter):
     """
 
     def __init__(self, cnx=None):
-        self.cnx = cnx
         self.score_table = "lu_scores"
         self.name = "Locality Uniqueness"
 
@@ -156,113 +179,7 @@ class LocalityUniqueness(RedwoodFilter):
         print "[+] Locality Uniqueness Filter running on {}".format(source)
         self.build()
         self.evaluate_source(source, 3)
-       
 
-    def discover_show_top(self, n):
-        """
-        Discovery function that shows the top n scores from those media sources that already have been
-        analyzed by this filter.
-
-        :param n: the limit of results to show from the top results
-        """
-
-        cursor = self.cnx.cursor()
-        query = ("""SELECT lu_scores.id, score,  unique_path.full_path, file_metadata.file_name, media_source.name from lu_scores 
-                    LEFT JOIN file_metadata ON (lu_scores.id = file_metadata.unique_file_id) LEFT JOIN unique_path on 
-                    (file_metadata.unique_path_id = unique_path.id) 
-                    LEFT JOIN media_source on (file_metadata.source_id = media_source.id) order by score desc limit 0, {}""").format(n)
-        cursor.execute(query)
-        for (index, score, path, filename, source) in cursor:
-            print "{} {} {} {} {}".format(index, score, path, filename, source)
-
-
-
-    def discover_show_bottom(self, n):
-        """
-        Discovery function that shows the bottom n scores from those media sources that alreay have been
-        analyzed by this filter
-
-        :param n: the limit of results to show from the bottom results
-        """
-
-        cursor = self.cnx.cursor()
-        query = ("""SELECT lu_scores.id, score,  unique_path.full_path, file_metadata.file_name, media_source.name from lu_scores 
-                    LEFT JOIN file_metadata ON (lu_scores.id = file_metadata.unique_file_id) LEFT JOIN unique_path on 
-                    (file_metadata.unique_path_id = unique_path.id) 
-                    LEFT JOIN media_source on (file_metadata.source_id = media_source.id) order by score asc limit 0, {}""").format(n)
-        cursor.execute(query)
-        for(index, score, path, filename, source) in cursor:
-            print "{}: [Score {}] [Src: {}] {}/{}".format(index, score, source,  path, filename)
-
-
-    def discover_evaluate_dir(self, dir_name, source, num_clusters=3):
-        """
-        Discovery function that applies kmeans clustering to a specified directory. Currently,
-        this function uses two static features of "modification date" and "inode number" but
-        future versions will allow for dynamic features inputs.
-
-        :param dir_name: directory name to be analyzed (Required)
-        :source: source name to be analzyed (Required)
-        :num_clusters: specified number of clusters to use for kmeans (Default: 3)
-        """
-
-        num_features = 2
-        num_clusters = int(num_clusters)
-        cursor = self.cnx.cursor()
-        
-        if(dir_name.endswith('/')):
-            dir_name = dir_name[:-1]
-
-        print "...Running discovery function on source {} at directory {}".format(source, dir_name)
-
-        source_id = self.get_source_id(source)
-
-        if source_id is -1:
-            return [None, None]
-
-        #grab all files for a particular directory from a specific source
-        hash_val = sha1(dir_name).hexdigest()
-        
-        query = ("""SELECT file_name, file_metadata_id, filesystem_id, last_modified
-        FROM joined_file_metadata
-        WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'""").format(source_id, hash_val)
-
-        cursor.execute(query)
-
-        #bring all results into memory
-        sql_results = cursor.fetchall()
-      
-        if(len(sql_results) == 0):
-            return [None, None]
-
-        #zero out the array that will contain the inodes
-        filesystem_id_arr = np.zeros((len(sql_results), num_features))
-
-        i = 0
-        for _, _,inode, mod_date in sql_results:
-            seconds = calendar.timegm(mod_date.utctimetuple())
-            filesystem_id_arr[i] = (inode, seconds)
-            i += 1
-        whitened = whiten(filesystem_id_arr) 
-        #get the centroids
-        codebook,_ = kmeans(whitened, num_clusters)
-        code, dist = vq(whitened, codebook)
-        d = defaultdict(int)
-
-        #quick way to get count of cluster sizes        
-        for c in code:
-            d[c] += 1
-      
-        #sorted the map codes to get the smallest to largest cluster
-        sorted_codes = sorted(d.iteritems(), key = operator.itemgetter(1))
-        #sorts the codes and sql_results together as pairs
-        combined = zip(dist, code, sql_results)
-        sorted_results =  sorted(combined, key=lambda tup: tup[0])
-
-        for dist_val, c, r in sorted_results:
-            print "Dist: {} Cluster: {}  Data: {}".format(dist_val,c,r)
-
-        self.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime")
 
     def evaluate_source(self, source_name, num_clusters=3):
         """
@@ -378,6 +295,9 @@ class LocalityUniqueness(RedwoodFilter):
          
 
     def clean(self):
+    """
+    Removes all tables assocated with this filter
+    """
         cursor = self.cnx.cursor()
         cursor.execute("DROP TABLE IF EXISTS lu_scores")
         cursor.execute("DROP TABLE IF EXISTS locality_uniqueness")
@@ -386,7 +306,9 @@ class LocalityUniqueness(RedwoodFilter):
 
 
     def build(self):
-
+    """
+    Build all persistent tables associated with this filter
+    """
         cursor = self.cnx.cursor()
 
         query = ("CREATE TABLE IF NOT EXISTS lu_analyzed_sources ( "
@@ -416,4 +338,118 @@ class LocalityUniqueness(RedwoodFilter):
         
         self.cnx.commit()
     
+
+
+
+    ##################################################
+    #
+    #       DISCOVERY FUNCTIONS
+    #
+    ##################################################
+
+    def discover_show_top(self, n):
+        """
+        Discovery function that shows the top n scores from those media sources that already have been
+        analyzed by this filter.
+
+        :param n: the limit of results to show from the top results
+        """
+
+        cursor = self.cnx.cursor()
+        query = ("""SELECT lu_scores.id, score,  unique_path.full_path, file_metadata.file_name, media_source.name from lu_scores 
+                    LEFT JOIN file_metadata ON (lu_scores.id = file_metadata.unique_file_id) LEFT JOIN unique_path on 
+                    (file_metadata.unique_path_id = unique_path.id) 
+                    LEFT JOIN media_source on (file_metadata.source_id = media_source.id) order by score desc limit 0, {}""").format(n)
+        cursor.execute(query)
+        for (index, score, path, filename, source) in cursor:
+            print "{} {} {} {} {}".format(index, score, path, filename, source)
+
+
+
+    def discover_show_bottom(self, n):
+        """
+        Discovery function that shows the bottom n scores from those media sources that alreay have been
+        analyzed by this filter
+
+        :param n: the limit of results to show from the bottom results
+        """
+
+        cursor = self.cnx.cursor()
+        query = ("""SELECT lu_scores.id, score,  unique_path.full_path, file_metadata.file_name, media_source.name from lu_scores 
+                    LEFT JOIN file_metadata ON (lu_scores.id = file_metadata.unique_file_id) LEFT JOIN unique_path on 
+                    (file_metadata.unique_path_id = unique_path.id) 
+                    LEFT JOIN media_source on (file_metadata.source_id = media_source.id) order by score asc limit 0, {}""").format(n)
+        cursor.execute(query)
+        for(index, score, path, filename, source) in cursor:
+            print "{}: [Score {}] [Src: {}] {}/{}".format(index, score, source,  path, filename)
+
+
+    def discover_evaluate_dir(self, dir_name, source, num_clusters=3):
+        """
+        Discovery function that applies kmeans clustering to a specified directory. Currently,
+        this function uses two static features of "modification date" and "inode number" but
+        future versions will allow for dynamic features inputs.
+
+        :param dir_name: directory name to be analyzed (Required)
+        :source: source name to be analzyed (Required)
+        :num_clusters: specified number of clusters to use for kmeans (Default: 3)
+        """
+
+        num_features = 2
+        num_clusters = int(num_clusters)
+        cursor = self.cnx.cursor()
+        
+        if(dir_name.endswith('/')):
+            dir_name = dir_name[:-1]
+
+        print "...Running discovery function on source {} at directory {}".format(source, dir_name)
+
+        source_id = self.get_source_id(source)
+
+        if source_id is -1:
+            return [None, None]
+
+        #grab all files for a particular directory from a specific source
+        hash_val = sha1(dir_name).hexdigest()
+        
+        query = ("""SELECT file_name, file_metadata_id, filesystem_id, last_modified
+        FROM joined_file_metadata
+        WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'""").format(source_id, hash_val)
+
+        cursor.execute(query)
+
+        #bring all results into memory
+        sql_results = cursor.fetchall()
+      
+        if(len(sql_results) == 0):
+            return [None, None]
+
+        #zero out the array that will contain the inodes
+        filesystem_id_arr = np.zeros((len(sql_results), num_features))
+
+        i = 0
+        for _, _,inode, mod_date in sql_results:
+            seconds = calendar.timegm(mod_date.utctimetuple())
+            filesystem_id_arr[i] = (inode, seconds)
+            i += 1
+        whitened = whiten(filesystem_id_arr) 
+        #get the centroids
+        codebook,_ = kmeans(whitened, num_clusters)
+        code, dist = vq(whitened, codebook)
+        d = defaultdict(int)
+
+        #quick way to get count of cluster sizes        
+        for c in code:
+            d[c] += 1
+      
+        #sorted the map codes to get the smallest to largest cluster
+        sorted_codes = sorted(d.iteritems(), key = operator.itemgetter(1))
+        #sorts the codes and sql_results together as pairs
+        combined = zip(dist, code, sql_results)
+        sorted_results =  sorted(combined, key=lambda tup: tup[0])
+
+        for dist_val, c, r in sorted_results:
+            print "Dist: {} Cluster: {}  Data: {}".format(dist_val,c,r)
+
+        self.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime")
 

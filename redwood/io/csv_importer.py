@@ -127,8 +127,8 @@ def run(cnx, path):
         return
     
     if(os.path.isfile(path)):
-        r =  db_load_file(cnx, path)
-        src_os_list.append(r)
+        info =  db_load_file(cnx, path)
+        src_os_list.append(info)
     elif(os.path.isdir(path)):
         for r, d, f in os.walk(path):
             while len(d) > 0:
@@ -136,8 +136,8 @@ def run(cnx, path):
             for file in f:
                 if not file.startswith('.'):
                     os.path.abspath(os.path.join(r, file))
-                    r = db_load_file(cnx, path + "/" + file)
-                    src_os_list.append(r)
+                    info = db_load_file(cnx, path + "/" + file)
+                    src_os_list.append(info)
     else:
         print 'Please input a valid file or a directory for import'
         return

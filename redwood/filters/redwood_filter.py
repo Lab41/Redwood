@@ -97,6 +97,10 @@ class RedwoodFilter(object):
         
         cursor.execute(query)
         r =  cursor.fetchone()
+        
+        if r is None:
+            return r
+
         return SourceInfo(r[0], r[1], r[2],r[3])
 
     def get_num_systems(self, os_name_or_id):

@@ -51,9 +51,11 @@ class DiscoverMode(GeneralMode):
         
         if(len(args) > 0):
             try:
+                start_time = time.time()
                 method = "discover_{}".format(args[0])
                 f = self.plugin.__getattribute__(method)
                 f(*args[1:])
+                print "...elapsed time was {}".format(time.time() - start_time)
             except TypeError as e:
                 self.plugin.usage()
                 print e
@@ -90,8 +92,8 @@ class FilterMode(GeneralMode):
         self.controller.pushMode(DiscoverMode(self.cnx, plugins[v],  self.controller))     
 
     def update(self, args = None):
-        if len(args) != 2:
-            print "Error: source required"
+        if len(args) != 3:
+            print "Error: incorrect number of arguments"
             return
         v = GeneralMode.validateFilterId(args[0])
         if v < 0:
@@ -101,7 +103,9 @@ class FilterMode(GeneralMode):
         query = "select * from media_source where name=\"{}\"".format(args[1])
         cursor.execute(query)
         r = cursor.fetchone()
-
+        if r is not None and args[2] != "Force":
+            print "Filters should have already been applied. Use the \"Force\" Luke, if you still want to run Update"
+            return
         plugin = plugins[v]
         plugin.cnx = self.cnx
         start_time = time.time()
@@ -140,8 +144,10 @@ class FilterMode(GeneralMode):
         print("\t-- activates discover mode for the given filter-id")
         print "[*] clean_run <filter-id>"
         print "\t--clears all data for a filter, then runs the filter on all sources"
-        print "[*] update <filter-id> <source-name>"
-        print "\t-- updates the data model to include data from source <source-name>"
+        print "[*] update <filter-id> <source-name> Force"
+        print "\t--updates the data model to include data from source <source-name>"
+        print "\t--NOTE: this automatically is called on import.  Must use \"Force\"" 
+        print "\t  option in order to execute"
         print "[*] clean <filter-id>"
         print "\t-- removes all data associated with the filter"
 class StandardMode(GeneralMode):

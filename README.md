@@ -68,8 +68,13 @@ class YourFilterName(RedwoodFilter)
 
     def __init__(self):
         self.name = "YourFilterName"
+        self.score_table = "YourScoreTableName"
+
     def usage(self):
         print "Your usage statement"
+
+    def update(self, source_name):
+        #code to update all filter tables with source_name data
 
     #discovery functions
     def discover_your_discover_func0(self, arg0, ..., argN):
@@ -78,10 +83,12 @@ class YourFilterName(RedwoodFilter)
     def discover_your discover_funcM(self, arg0, ..., argN):
         your code
 
-    #run function
     def run(self, cnx):
         your code
 
 ```
+
+##Optimizing MySQL Notes
+bulk_insert_buffer_size: 8G
 
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/Lab41/redwood/trend.png)](https://bitdeli.com/free "Bitdeli Badge")

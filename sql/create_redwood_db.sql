@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     date_acquired DATETIME NULL,
     os_id INT UNSIGNED NOT NULL,
     PRIMARY KEY (id),
-    INDEX name_UNIQUE (name ASC),
+    UNIQUE INDEX name_UNIQUE (name ASC),
     CONSTRAINT fk_os_id FOREIGN KEY (os_id)
         REFERENCES os (id)
         ON DELETE NO ACTION ON UPDATE NO ACTION
