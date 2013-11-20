@@ -123,86 +123,42 @@ class FilterPrevalence(RedwoodFilter):
         plt.show()
 
 
-    def discover_directory_prevalence(self, count, direction):
+    def discover_list_by_source(self, direction, count, source, out):
         """
-        Shows the top or bottom <count> directories based on prevalence analysis
+        Displays avg file prevalence in orderr for a given source
 
-        :param count: the number to display from the top or bottom
-        :param direction: either \"top\" or \"bottom\"
+        :param direction: either [top] or [bottom] 
+        :param count: number of rows to retrieve from the direction
+        :param out: file to write results to 
         """
 
+        print "[+] Running list_by_source"
         cursor = self.cnx.cursor()
-
-        if refresh is 'true':
-            query = """
-                INSERT into dir_prevalence(unique_path_id, avg_score, count)
-                    SELECT unique_path_id, average_score, t2.cnt from (SELECT unique_path_id, avg(average) as average_score from 
-                        (SELECT avg(score) as average, unique_path_id  FROM file_metadata 
-                            INNER JOIN filter_prevalence ON file_metadata.unique_file_id = filter_prevalence.unique_file_id 
-                            GROUP BY unique_path_id) as t 
-                        GROUP BY unique_path_id) as t0 inner join
-                        (SELECT COUNT(id) as cnt, unique_path_id as path_id 
-                    FROM file_metadata where file_name = '/' GROUP BY unique_path_id) as t2 on unique_path_id = t2.path_id
-            """
-
-            cursor.execute(query)
-
-
-        if direction is 'high':
-            pass
-        elif direction is 'low':
-            pass
-        else:
-            print "Direction must be \"high\" or \"low\""
-            return
-
-
-
-    def discover_view_high(self, count):
-        if(self.table_exists() == False):
-            self.run()
+        dir_val = ("desc" if direction is "top" else  "asc")
          
-        cursor = self.cnx.cursor()
-        
-        query = ("select full_path, file_name, score, file_type " 
-                "from joined_file_metadata JOIN filter_prevalence "
-                "ON (joined_file_metadata.unique_file_id = filter_prevalence.unique_file_id) "
-                "where (joined_file_metadata.file_type != '_dir') "
-                "ORDER BY score DESC "
-                "limit 0 , {}").format(count)
+        query = """
+            SELECT global_file_prevalence.average, unique_path.full_path, file_metadata.file_name  FROM redwood.global_file_prevalence
+            LEFT JOIN file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
+            LEFT JOIN unique_path ON file_metadata.unique_path_id = unique_path.id
+            WHERE file_metadata.source_id = (SELECT media_source.id FROM media_source WHERE media_source.name = "{}")
+            ORDER BY global_file_prevalence.average {} limit 0, {}
+        """.format(source, dir_val, count)
 
         cursor.execute(query)
-        v = 0
-        for x in cursor.fetchall():
-            print "{}:{} ({}) {}{}".format(v, x[2], x[3], x[0], x[1])
-            v += 1 
+
+        with open (out, "w") as f:
+            v = 0
+            for x in cursor.fetchall():
+                f.write("{}:{}   {}{}\n".format(v, x[0], x[1], x[2]))
+                v += 1 
         
         cursor.close()
-        
+ 
+
+    def discover_anomalies(self, source):
+        pass
         
 
-    def discover_view_low(self, count):
-        
-        if(self.table_exists() == False):
-            self.run()
-         
-        cursor = self.cnx.cursor()
-        
-        query = ("select full_path, file_name, score, file_type " 
-                "from joined_file_metadata JOIN filter_prevalence "
-                "ON (joined_file_metadata.unique_file_id = filter_prevalence.unique_file_id) "
-                "where (joined_file_metadata.file_type != '_dir') "
-                "ORDER BY score ASC "
-                "limit 0 , {}").format(count)
-
-        cursor.execute(query)
-       
-        v = 0
-        for x in cursor.fetchall():
-            print "{}:{} ({}) {}{}".format(v, x[2], x[3], x[0], x[1])
-            v += 1 
-        cursor.close()
-        
 
     def run(self):
 

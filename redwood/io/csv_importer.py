@@ -39,7 +39,7 @@ def db_load_file(connection, path):
         }
 
         #add os 
-        add_os = ("INSERT INTO `os` (name) VALUES('%(name)s') ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)") % data_os
+        add_os = ("INSERT INTO `os` (name) VALUES('%(name)s') ON DUPLICATE KEY UPDATE id=id") % data_os
         cursor.execute(add_os)
         connection.commit()
         
@@ -49,8 +49,12 @@ def db_load_file(connection, path):
             print "*** Error %d: %s" % (e.args[0],e.args[1])
             return                                        
 
-    os_id = cursor.lastrowid
-    
+    #now get the os_id for the os_name
+    query = "SELECT os.id FROM os WHERE os.name = \"{}\"".format(fields[1])
+    cursor.execute(query)
+    r = cursor.fetchone()
+    os_id = r[0]
+
     if(os_id is None):
         print "*** Error: Unable to find corresponding os"
         return
@@ -115,7 +119,6 @@ def db_load_file(connection, path):
     return (source_id, source_name, os_id)
 
 def run(cnx, path):
-
     
     src_os_list = list()
 
@@ -139,9 +142,15 @@ def run(cnx, path):
         print 'Please input a valid file or a directory for import'
         return
 
+    start_time = time.time() 
+
     #now let's run the prevalence analyzer
     pu = PrevalenceAnalyzer(cnx)
     pu.update(src_os_list)
+    elapsed_time = time.time() - start_time
+    print "...completed in {}".format(elapsed_time)
+    
+    start_time = time.time()
 
     #set the cnx for each plugin
     for p in plugins:
@@ -151,3 +160,7 @@ def run(cnx, path):
         print "==== Beginning filter analysis of {} ====".format(source_name)
         for p in plugins:
             p.update(source_name)
+
+    elapsed_time = time.time() - start_time
+    print "...completed in {}".format(elapsed_time)
+

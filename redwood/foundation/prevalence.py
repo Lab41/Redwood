@@ -125,6 +125,7 @@ class PrevalenceAnalyzer():
             num_systems INT NOT NULL DEFAULT 0,
             os_id INT UNSIGNED NOT NULL,
             PRIMARY KEY(unique_file_id, os_id),
+            INDEX idx_fp_average (average) USING BTREE,                   
             INDEX fk_unique_file_idx1 (unique_file_id),
             INDEX fk_os_id_idx1 (os_id),
             CONSTRAINT fk_unique_file_idx1 FOREIGN KEY(unique_file_id)
