@@ -295,9 +295,7 @@ class LocalityUniqueness(RedwoodFilter):
          
 
     def clean(self):
-    """
-    Removes all tables assocated with this filter
-    """
+
         cursor = self.cnx.cursor()
         cursor.execute("DROP TABLE IF EXISTS lu_scores")
         cursor.execute("DROP TABLE IF EXISTS locality_uniqueness")
@@ -306,9 +304,9 @@ class LocalityUniqueness(RedwoodFilter):
 
 
     def build(self):
-    """
-    Build all persistent tables associated with this filter
-    """
+        """
+        Build all persistent tables associated with this filter
+        """
         cursor = self.cnx.cursor()
 
         query = ("CREATE TABLE IF NOT EXISTS lu_analyzed_sources ( "

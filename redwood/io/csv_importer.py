@@ -17,7 +17,6 @@ def db_load_file(connection, path):
         print '*** Error: File \'{}\' does not exist'.format(path)
         return
     
-    start_time = time.time()
 
     filename = os.path.basename(path)
     fields = string.split(filename, '--')
@@ -101,12 +100,16 @@ def db_load_file(connection, path):
 
 
     try:
+
+        start_time = time.time()
         cursor.execute(add_staging_table)
         connection.commit() 
+        print "...data transfer to staging table in {}".format(time.time() - start_time)
+        start_time = time.time()
         cursor.callproc('map_staging_table', (media_source_id, os_id))
         cursor.execute("DELETE FROM `staging_table`;")
         connection.commit()
-   
+        print "...data written from staging table to main tables in {}".format(time.time() - start_time)
     except Exception as err:
         print(err)
         cursor.close()
