@@ -101,13 +101,47 @@ def db_load_file(connection, path):
 
     try:
 
+        #create the staging table
+        query = """
+            CREATE TABLE IF NOT EXISTS staging_table (
+            global_file_id LONG NOT NULL,
+            parent_id LONG NULL,
+            dirname VARCHAR(4096) NULL,
+            basename VARCHAR(255) NULL,
+            contents_hash CHAR(40) NULL,
+            dirname_hash CHAR(40) NULL,
+            filesystem_id MEDIUMTEXT NULL,
+            device_id INT NULL,
+            attributes INT NULL,
+            user_owner INT NULL,
+            group_owner INT NULL,
+            size MEDIUMTEXT NULL,
+            created DATETIME NULL,
+            last_accessed DATETIME NULL,
+            last_modified DATETIME NULL,
+            last_changed DATETIME NULL,
+            user_flags INT NULL DEFAULT NULL,
+            links_to_file INT NULL,
+            disk_offset BIGINT  NULL,
+            entropy TINYINT  NULL,
+            file_content_status TINYINT NULL,
+            extension VARCHAR(32)  NULL,
+            file_type VARCHAR(64)  NULL,
+            INDEX contents_hash_idx (contents_hash ASC),
+            INDEX dirname_hash_idx (dirname_hash ASC)
+            )  ENGINE=InnoDB;
+        """
+        
+        cursor.execute(query)
+        connection.commit()
+
         start_time = time.time()
         cursor.execute(add_staging_table)
         connection.commit() 
         print "...data transfer to staging table in {}".format(time.time() - start_time)
         start_time = time.time()
         cursor.callproc('map_staging_table', (media_source_id, os_id))
-        cursor.execute("DELETE FROM `staging_table`;")
+        cursor.execute("DROP TABLE `staging_table`;")
         connection.commit()
         print "...data written from staging table to main tables in {}".format(time.time() - start_time)
     except Exception as err:

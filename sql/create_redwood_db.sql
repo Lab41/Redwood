@@ -82,29 +82,3 @@ INDEX parent_id_idx USING BTREE (parent_id ASC),
 INDEX file_name_idx USING BTREE (file_name ASC)   
 )  ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS staging_table (
-    global_file_id LONG NOT NULL,
-    parent_id LONG NULL,
-    dirname VARCHAR(4096) NULL,
-    basename VARCHAR(255) NULL,
-    contents_hash CHAR(40) NULL,
-    dirname_hash CHAR(40) NULL,
-    filesystem_id MEDIUMTEXT NULL,
-    device_id INT NULL,
-    attributes INT NULL,
-    user_owner INT NULL,
-    group_owner INT NULL,
-    size MEDIUMTEXT NULL,
-    created DATETIME NULL,
-    last_accessed DATETIME NULL,
-    last_modified DATETIME NULL,
-    last_changed DATETIME NULL,
-    user_flags INT NULL DEFAULT NULL,
-    links_to_file INT NULL,
-    disk_offset BIGINT  NULL,
-    entropy TINYINT  NULL,
-    file_content_status TINYINT NULL,
-    extension VARCHAR(32)  NULL,
-    file_type VARCHAR(64)  NULL
-
-)  ENGINE=InnoDB;
