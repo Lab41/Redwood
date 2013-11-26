@@ -16,7 +16,7 @@
 
 
 """
-This filter provides analysis and scoring based on the prevalence of files and directories
+This filter provides analysis and scoring based on the prevalence of files and directories across sources. The general idea is that a file with a higher prevalence would have a higher reputation than a file that occurs less often.  
 
 Created on 19 October 2013
 @author: Lab41
@@ -38,13 +38,10 @@ class FilterPrevalence(RedwoodFilter):
         self.cnx = None         
 
     def usage(self):
-        
-        print "[+] view_by_source <direction> <count> <source> <out_file>"
-        print "--- Lists the highest or lowest prevalent files by their average in the specified order"
-        print "\t- direction: either \"top\" or \"bottom\""
-        print "\t- count: number or results to return from the direction"
-        print "\t- source: name of the source"
-        print "\t- out_file: file to write results to"
+        """
+        Prints the usage statement
+        """
+
         print "[+] histogram_by_source <source_name>"
         print "---view histogram of file distribution for a single source with name <source_name>"
         print "\t- source_name: name of the source"
@@ -127,38 +124,6 @@ class FilterPrevalence(RedwoodFilter):
     
         plt.show()
 
-
-    def discover_view_by_source(self, direction, count, source, out):
-        """
-        Displays avg file prevalence in orderr for a given source
-
-        :param direction: either [top] or [bottom] 
-        :param count: number of rows to retrieve from the direction
-        :param out: file to write results to 
-        """
-
-        print "[+] Running list_by_source..."
-        cursor = self.cnx.cursor()
-        dir_val = ("desc" if direction is "top" else  "asc")
-         
-        query = """
-            SELECT global_file_prevalence.average, unique_path.full_path, file_metadata.file_name  FROM redwood.global_file_prevalence
-            LEFT JOIN file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
-            LEFT JOIN unique_path ON file_metadata.unique_path_id = unique_path.id
-            WHERE file_metadata.source_id = (SELECT media_source.id FROM media_source WHERE media_source.name = "{}")
-            ORDER BY global_file_prevalence.average {} limit 0, {}
-        """.format(source, dir_val, count)
-
-        cursor.execute(query)
-
-        with open (out, "w") as f:
-            v = 0
-            for x in cursor.fetchall():
-                f.write("{}: {}   {}{}\n".format(v, x[0], x[1], x[2]))
-                v += 1 
-        
-        cursor.close()
- 
 
     def discover_detect_anomalies(self, source, out):
         """

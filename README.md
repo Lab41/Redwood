@@ -2,13 +2,50 @@
 
 This project implements statistical methods to assist in identifying anomalous files from a larger data set.  
 
-##Quick Start
+##Quick Setup
+The instructions that follow should get you up an running quickly.  Currently Redwood is setup to run on OS X and Linux, though Windows may work too, though it hasn't been tested.
 
-#### Using PIP
+#### Stuff to Download
+1. Python 2.7
+2. Various Python packages
+  * SciPy
+  * MatPlotLib
+  * MySQLdb
+3. MySQL Client for your client OS
+4. MySQL Server for the server hosting the DB
+
+#### Prep the Database
+Redwood uses a MySQL database to store metadata. In order to use Redwood, you will need to first set up your own MySQL DB, then run the following two SQL scripts to create the required tables and subroutines.
+
+```
+mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_redwood_db.sql
+mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_redwood_sp.sql
+```
+
+#### Create a config
+
+```
+[mysqld]
+database:your_db_name
+host:your_host
+username:your_username
+password:your_password
+```
+
+## Run Redwood
+
+#### Using PIP or Souce
 
 
-#### Use Source
 
+### Using the Sample Shell
+
+```
+#append to the python path the Redwood directory
+export PYTHONPATH=/path/to/Redwood
+#from the Redwood directory run
+python sample_shell/run.py /path/to/config
+```
 
 ##Documentation
 from the root project directory, run the following
@@ -18,41 +55,6 @@ pushd docs
 make html
 make man
 popd
-```
-
-##Python Package Requirements
-Install the following packages
-
-- MySQLdb - MySQL-Python Project provides MySQL Connector (http://mysql-python.sourceforge.net/)
-- python 2.7
-- SciPy - http://www.scipy.org/
-- Matplotlib 
-
-##Setup
-
-###Databases
-First create the database
-
-From the Redwood directory, run
-```
-mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_redwood_db.sql
-mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_redwood_sp.sql
-```
-
-###Run Redwood
-write a connection config
-```
-[mysqld]
-database:your_db_name
-host:your_host
-username:your_username
-password:your_password
-```
-
-Then, start the application, specifying the config you just created
-
-```
-python redwood.py /path/to/connection/config
 ```
 
 ###Data

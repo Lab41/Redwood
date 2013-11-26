@@ -161,13 +161,12 @@ class LocalityUniqueness(RedwoodFilter):
         self.name = "Locality Uniqueness"
 
     def usage(self):
-        print "show_top [size]"
-        print "\t--lists top size scores for all added sources"
-        print "show_bottom [size]"
-        print "\t--lists bottom size scores for all added sources"
-        print "evaluate_dir [full_path] [source] [num_clusters]"
-        print "\t--Runs kmeans and shows scatter plot"
-    
+        print "[*] evaluate_dir [full_path] [source] [clusters]"
+        print "\t|- runs kmeans and shows scatter plot"
+        print "\t| [full_path]  - path to analyze"
+        print "\t| [source]     - source where the path exists"
+        print "\t| [clusters]   - number of clusters to use"
+
     def update(self, source):
         """
         Applies the Locality Uniqueness filter to the given source, updating existing data
@@ -344,43 +343,6 @@ class LocalityUniqueness(RedwoodFilter):
     #       DISCOVERY FUNCTIONS
     #
     ##################################################
-
-    def discover_show_top(self, n):
-        """
-        Discovery function that shows the top n scores from those media sources that already have been
-        analyzed by this filter.
-
-        :param n: the limit of results to show from the top results
-        """
-
-        cursor = self.cnx.cursor()
-        query = ("""SELECT lu_scores.id, score,  unique_path.full_path, file_metadata.file_name, media_source.name from lu_scores 
-                    LEFT JOIN file_metadata ON (lu_scores.id = file_metadata.unique_file_id) LEFT JOIN unique_path on 
-                    (file_metadata.unique_path_id = unique_path.id) 
-                    LEFT JOIN media_source on (file_metadata.source_id = media_source.id) order by score desc limit 0, {}""").format(n)
-        cursor.execute(query)
-        for (index, score, path, filename, source) in cursor:
-            print "{} {} {} {} {}".format(index, score, path, filename, source)
-
-
-
-    def discover_show_bottom(self, n):
-        """
-        Discovery function that shows the bottom n scores from those media sources that alreay have been
-        analyzed by this filter
-
-        :param n: the limit of results to show from the bottom results
-        """
-
-        cursor = self.cnx.cursor()
-        query = ("""SELECT lu_scores.id, score,  unique_path.full_path, file_metadata.file_name, media_source.name from lu_scores 
-                    LEFT JOIN file_metadata ON (lu_scores.id = file_metadata.unique_file_id) LEFT JOIN unique_path on 
-                    (file_metadata.unique_path_id = unique_path.id) 
-                    LEFT JOIN media_source on (file_metadata.source_id = media_source.id) order by score asc limit 0, {}""").format(n)
-        cursor.execute(query)
-        for(index, score, path, filename, source) in cursor:
-            print "{}: [Score {}] [Src: {}] {}/{}".format(index, score, source,  path, filename)
-
 
     def discover_evaluate_dir(self, dir_name, source, num_clusters=3):
         """

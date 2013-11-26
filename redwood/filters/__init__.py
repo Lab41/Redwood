@@ -5,7 +5,7 @@ import inspect
 import imp
 
 
-plugins = list()
+filter_list = list()
 
 for importer, modname, ispkg in pkgutil.iter_modules(__path__):
     module = __import__(modname,locals(),[],-1) 
@@ -13,6 +13,5 @@ for importer, modname, ispkg in pkgutil.iter_modules(__path__):
         if inspect.isclass(cls) and issubclass(cls, RedwoodFilter):
             instance = cls()
             if(instance.name != "generic"):
-                plugins.append(cls())
-
+                filter_list.append(instance)
 

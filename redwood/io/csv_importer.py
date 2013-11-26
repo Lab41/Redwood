@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 import MySQLdb
 from redwood.foundation.prevalence import PrevalenceAnalyzer
-from redwood.filters import plugins
+from redwood.filters import filter_list
 
 
 def db_load_file(connection, path):
@@ -190,12 +190,12 @@ def run(cnx, path):
     start_time = time.time()
 
     #set the cnx for each plugin
-    for p in plugins:
+    for p in filter_list:
         p.cnx = cnx
 
     for src_id, source_name, os_id in src_os_list:
         print "==== Beginning filter analysis of {} ====".format(source_name)
-        for p in plugins:
+        for p in filter_list:
             p.update(source_name)
 
     elapsed_time = time.time() - start_time

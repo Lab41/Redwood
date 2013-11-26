@@ -11,7 +11,7 @@ class RedwoodFilter(object):
     def __init__(self):
         self.name = "generic"
         self.cnx = None    
-
+        self.score_table = None
     def run(self):
         print "running default"
     def clean(self):
@@ -20,7 +20,58 @@ class RedwoodFilter(object):
         print "update default"
     def display(self):
         print "displaying"
-    
+    def rebuild(self):
+        self.clean()
+        self.build()
+
+        #get a list of the sources
+        query = """
+            SELECT media_source.name FROM media_source
+        """
+
+        cursor = self.cnx.cursor()
+        cursor.execute(query)
+        
+        print "...Rebuild process started"
+        for source in cursor.fetchall():
+            print "rebuilding for source: {}".format(source[0])
+            self.update(source[0])
+        
+    def show_results(self, direction, count, source, out):
+        """
+        Displays avg file prevalence in orderr for a given source
+
+        :param direction: either [top] or [bottom] 
+        :param count: number of rows to retrieve from the direction
+        :param out: file to write results to 
+        """
+
+        print "[+] Running list_by_source..."
+        cursor = self.cnx.cursor()
+        dir_val = ("desc" if direction is "top" else  "asc")
+        
+        query = """
+            SELECT {}.score, unique_path.full_path, file_metadata.file_name 
+            FROM {} LEFT JOIN file_metadata ON {}.id = file_metadata.unique_file_id
+            LEFT JOIN unique_path ON file_metadata.unique_path_id = unique_path.id
+            WHERE file_metadata.source_id = (SELECT media_source.id FROM media_source WHERE media_source.name = "{}")
+            ORDER BY {}.score {} LIMIT 0, {}
+        """.format(self.score_table, self.score_table, self.score_table, source, self.score_table, dir_val, count)
+
+        cursor.execute(query)
+
+        with open (out, "w") as f:
+            v = 0
+            for x in cursor.fetchall():
+                f.write("{}: {}   {}{}\n".format(v, x[0], x[1], x[2]))
+                v += 1 
+        
+        cursor.close()
+ 
+    def run_func(self, func_name, args):
+        f = self.__getattribute__(func_name)
+        f(*args)
+
     def sortAsClusters(self, code, sql_results):
        
         combined = list()

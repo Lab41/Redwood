@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+
+import sys
+import os
+import getopt
+import string
+import MySQLdb
+import exceptions
+import ConfigParser
+import redwood.filters
+import redwood.connection.connect as rconn
+from controller import SessionController
+
+
+def main(argv):
+
+    
+
+    if(len(argv) != 1):
+        print "Please provide database configuration file"
+        sys.exit(1)
+
+    print '\033[1;31m\n\n#################################\nWelcome to Redwood\n#################################\n\033[1;m'
+
+    print "Establishing connection to database...\n",
+
+    print "Config: {}".format(argv[0])
+    cnx = rconn.connect_with_config(argv[0])
+
+    SessionController(cnx).run()
+    cnx.close()
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -4,9 +4,8 @@ import getopt
 import string
 import exceptions
 import multiprocessing
-from redwood.shell.modes import StandardMode, FilterMode, DiscoverMode
-
-
+from modes import StandardMode
+from redwood.filters import filter_list
 
 class SessionController:
 
@@ -14,6 +13,7 @@ class SessionController:
         self.cnx = cnx
         self.curr_filter_index = None
         self.mode_stack = [StandardMode(cnx, self)]
+        
     def pushMode(self, new_mode):
         self.mode_stack.append(new_mode)
     def popMode(self):
@@ -22,6 +22,10 @@ class SessionController:
     def run(self):
         
         print "running with {} cores".format(multiprocessing.cpu_count())
+
+        #set the connection in each filter
+        for f in filter_list:
+            f.cnx = self.cnx
 
         while True:
             mode = self.mode_stack[len(self.mode_stack) - 1] 
