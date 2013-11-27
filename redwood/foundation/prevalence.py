@@ -136,7 +136,10 @@ class PrevalenceAnalyzer():
         self.cnx.commit()
 
     def clean(self):
-         
+        """
+        Removes all required tables
+        """
+
         cursor = self.cnx.cursor() 
         cursor.execute("DROP TABLE IF EXISTS global_file_prevalence")
         cursor.execute("DROP TABLE IF EXISTS global_dir_prevalence")
@@ -145,7 +148,9 @@ class PrevalenceAnalyzer():
 
 
     def build(self):
-        
+        """
+        Builds all required tables
+        """
         cursor = self.cnx.cursor()
 
         query = """

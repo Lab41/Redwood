@@ -6,7 +6,7 @@ import exceptions
 import redwood.filters
 import redwood.io.csv_importer as csv_load
 from redwood.filters import filter_list
-import redwood.helpers.central as central
+import redwood.helpers.core as core
 import time
 
 
@@ -80,7 +80,7 @@ class FilterMode(GeneralMode):
     
     def __init__(self, cnx, controller):
         super(FilterMode, self).__init__(cnx, controller)
-        self.prompt = '\033[1;32mredwood-filters$ \033[1;m'   
+        self.prompt = '\033[1;32mredwood-filter$ \033[1;m'   
     def discover(self, args = None):
         if(len(args) != 1):
             print "Error: Filter Id required"
@@ -140,21 +140,22 @@ class FilterMode(GeneralMode):
             print "{}............{}".format(i, plugin.name)
             i+=1
     def help(self, args=None):
-        print( "Filter Mode")
-        print("[*] list") 
-        print("\t-- lists all loaded filters ")
-        print("[*] discover <filter-id> ")
-        print("\t-- activates discover mode for the given filter-id")
+        print "Filter Mode"
+        print "[*] list"
+        print "\t|- lists all loaded filters"
+        print "[*] discover <filter-id>"
+        print "\t|- activates discover mode for the given filter-id"
+        print "\t|-[filter-id]  - id of filter"
         print "[*] rebuild <filter-id>"
-        print "\t--rebuilds all tables for the specified filter"
+        print "\t|-rebuilds all tables for the specified filter"
+        print "\t|-[filter-id]   - id of filter"
         print "[*] show_results <filter-id> <direction> <count> <source> <out>"
         print "\t|- shows the results for the given filters score table"
+        print "\t|-[filter-id]  - id of filter"
         print "\t|-[direction]  - top or bottom"
         print "\t|-[count]      - items to display"
         print "\t|-[source]     - source name"
         print "\t|-[out]        - file to write output to"
-        print "[*] clean <filter-id>"
-        print "\t-- removes all data associated with the filter"
 class StandardMode(GeneralMode):
     def __init__(self, cnx, controller):
         super(StandardMode, self).__init__(cnx, controller)
@@ -170,7 +171,7 @@ class StandardMode(GeneralMode):
         if len(args) != 1:
             print "Error: pat required"
             return
-        new_filters = central.import_filters(args[0])
+        new_filters = core.import_filters(args[0])
         print "New Filters: "
         print new_filters
     def help(self, args = None):

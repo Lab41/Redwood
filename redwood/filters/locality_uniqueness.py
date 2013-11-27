@@ -35,6 +35,8 @@ import random
 import warnings
 from multiprocessing import Pool, Queue, Manager
 import Queue
+import redwood.helpers.core as core
+import redwood.helpers.visual as visual
 
 warnings.filterwarnings('ignore')
 
@@ -193,18 +195,10 @@ class LocalityUniqueness(RedwoodFilter):
         """
 
         cursor = self.cnx.cursor()
-        
-        cursor.execute(("""select id from media_source where name = '{}';""").format(source_name))
-        
-        r = cursor.fetchone()
-        
-        if r is None:
-            print "Error: Source with name \"{}\" does not exist".format(source_name)
-            return
+        src_info = core.get_source_info(self.cnx, source_name)        
 
-        source_id = r[0]
         query = ("""SELECT count(*) from lu_analyzed_sources
-                where id = '{}';""").format(source_id)
+                where id = '{}';""").format(src_info.source_id)
 
         cursor.execute(query)
 
@@ -213,14 +207,14 @@ class LocalityUniqueness(RedwoodFilter):
             print "already analyzed source {}".format(source_name)
             return
         else:
-            query = "insert into lu_analyzed_sources (id, name) VALUES('{}','{}')".format(source_id, source_name)
+            query = "insert into lu_analyzed_sources (id, name) VALUES('{}','{}')".format(src_info.source_id, source_name)
             cursor.execute(query)
             self.cnx.commit()
         #returns all files sorted by directory for the given source
         query = ("""
                 SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash 
                 FROM joined_file_metadata 
-                where source_id = {} order by parent_id asc""").format(source_id)
+                where source_id = {} order by parent_id asc""").format(src_info.source_id)
         
         cursor.execute(query)
        
@@ -366,10 +360,9 @@ class LocalityUniqueness(RedwoodFilter):
             dir_name = dir_name[:-1]
 
         print "...Running discovery function on source {} at directory {}".format(source, dir_name)
-
-        source_id = self.get_source_id(source)
-
-        if source_id is -1:
+        
+        src_info = core.get_source_info(self.cnx, source)
+        if src_info is None:
             return [None, None]
 
         #grab all files for a particular directory from a specific source
@@ -377,7 +370,7 @@ class LocalityUniqueness(RedwoodFilter):
         
         query = ("""SELECT file_name, file_metadata_id, filesystem_id, last_modified
         FROM joined_file_metadata
-        WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'""").format(source_id, hash_val)
+        WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'""").format(src_info.source_id, hash_val)
 
         cursor.execute(query)
 
@@ -414,5 +407,5 @@ class LocalityUniqueness(RedwoodFilter):
         for dist_val, c, r in sorted_results:
             print "Dist: {} Cluster: {}  Data: {}".format(dist_val,c,r)
 
-        self.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime", dir_name)
+        visual.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime", dir_name)
 

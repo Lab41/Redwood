@@ -24,6 +24,7 @@ Created on 19 October 2013
 from redwood.filters.redwood_filter import *
 import numpy as np
 import matplotlib.pyplot as plt
+import redwood.helpers.core as core
 
 class FilterPrevalence(RedwoodFilter):
     """
@@ -64,18 +65,13 @@ class FilterPrevalence(RedwoodFilter):
         self.build()
 
         cursor = self.cnx.cursor()
-
-        cursor.execute("SELECT id, os_id from media_source where name = '{}'".format(source))
-        r = cursor.fetchone()
-
-        if r is None:
-            print "Error: Source with name \"{}\" does not exist".format(source)
+        
+        src_info = core.get_source_info(self.cnx, source)
+        
+        if src_info is None:
+            print "Error: Source {} not found".format(source)
             return
 
-        source_id = r[0]
-        os_id = r[1]
-
-        
         #initial insert
         query = """
             INSERT INTO  fp_scores(id, score)
@@ -84,7 +80,7 @@ class FilterPrevalence(RedwoodFilter):
             ON file_metadata.unique_file_id = global_file_prevalence.unique_file_id
             where file_metadata.source_id = {}
             ON DUPLICATE KEY UPDATE score = IF(num_systems < 3, .5, average)
-        """.format(source_id)
+        """.format(src_info.source_id)
 
         cursor.execute(query)
         self.cnx.commit()
@@ -99,7 +95,7 @@ class FilterPrevalence(RedwoodFilter):
             SET fp_scores.score = fp_scores.score * .5 
             where file_metadata.source_id = {} AND global_file_prevalence.count = 1 and global_file_prevalence.num_systems > 2 
             and global_dir_combined_prevalence.average - global_file_prevalence.average > .6
-        """.format(source_id)
+        """.format(src_info.source_id)
        
         cursor.execute(query)
         self.cnx.commit()
@@ -112,7 +108,7 @@ class FilterPrevalence(RedwoodFilter):
             LEFT JOIN fp_scores ON file_metadata.unique_file_id = fp_scores.id
             SET fp_scores.score = (1 - fp_scores.score) * .25 + fp_scores.score
             where file_metadata.source_id = {} AND global_dir_prevalence.average > .8 AND global_dir_combined_prevalence.average < .5
-        """.format(source_id)
+        """.format(src_info.source_id)
         
         cursor.execute(query)
         self.cnx.commit()
@@ -167,7 +163,7 @@ class FilterPrevalence(RedwoodFilter):
         cursor = self.cnx.cursor()
        
  
-        num_systems = self.get_num_systems(os_name)
+        num_systems = core.get_num_systems(self.cnx, os_name)
        
         if num_systems is None or num_systems == 0:
             print "Error: OS {} does not exist".format(os_name)
@@ -210,13 +206,13 @@ class FilterPrevalence(RedwoodFilter):
    
         cursor = self.cnx.cursor()
         
-        src_info = self.get_source_info(source_name)
+        src_info = core.get_source_info(self.cnx, source_name)
         
         if src_info is None:
             print "Source {} does not exist".format(source_name)
             return
         
-        num_systems = self.get_num_systems(src_info.os_id)
+        num_systems = core.get_num_systems(self.cnx, src_info.os_id)
         bins = range(1, num_systems+2)
        
         query = """
@@ -254,7 +250,7 @@ class FilterPrevalence(RedwoodFilter):
         
         cursor = self.cnx.cursor()
 
-        src_info = self.get_source_info(source)
+        src_info = core.get_source_info(self.cnx, source)
         
         if src_info is None:
             print "*** Error: Source not found"
