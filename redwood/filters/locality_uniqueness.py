@@ -16,9 +16,6 @@
 
 
 """
-This Filter provides analysis and scoring based on feature clusters of individual
-directories of files from media sources
-
 Created on 19 October 2013
 @author: Lab41
 """
@@ -151,9 +148,11 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
 
 
 class LocalityUniqueness(RedwoodFilter):
-
     """
-    This LocalityUniqueness class provides the "Locality Uniqueness" filter functionality
+    LocalityUniqueness seeks to identify anomalies through clustering of file features in a given directory. The 
+    assumption is that files of interest are those that are different than most of their neighbors in a given 
+    domain -- this case being the directory.  As a result, this filter is responsible for giving outliers of clusters
+    lower reputation scores than those files closer to the centroid
     """
 
     def __init__(self, cnx=None):
@@ -161,6 +160,9 @@ class LocalityUniqueness(RedwoodFilter):
         self.name = "Locality Uniqueness"
 
     def usage(self):
+        """
+        Prints the usage statements for the discovery functions
+        """
         print "[*] evaluate_dir [full_path] [source] [clusters]"
         print "\t|- runs kmeans and shows scatter plot"
         print "\t| [full_path]  - path to analyze"
@@ -276,7 +278,6 @@ class LocalityUniqueness(RedwoodFilter):
 
         cursor.execute(query) 
 
-
         print "...updating scores on the server"
         query = """
             INSERT INTO lu_scores
@@ -285,15 +286,15 @@ class LocalityUniqueness(RedwoodFilter):
             WHERE file_metadata.unique_file_id is not null
             GROUP BY file_metadata.unique_file_id)
             """
-                        
-       
+                               
         cursor.execute(query)
         self.cnx.commit()
         
 
-         
-
     def clean(self):
+        """
+        Removes all tables associated with this filter
+        """
 
         cursor = self.cnx.cursor()
         cursor.execute("DROP TABLE IF EXISTS lu_scores")
@@ -346,7 +347,9 @@ class LocalityUniqueness(RedwoodFilter):
 
     def discover_evaluate_dir(self, dir_name, source, num_clusters=3):
         """
-        Discovery function that applies kmeans clustering to a specified directory. Currently,
+        Discovery function that applies kmeans clustering to a specified directory, displays
+        the resulting scatter plot with the clusters, and then prints out an ordered list of 
+        the file by the distance from their respective centroid. Currently,
         this function uses two static features of "modification date" and "inode number" but
         future versions will allow for dynamic features inputs.
 
@@ -411,5 +414,5 @@ class LocalityUniqueness(RedwoodFilter):
         for dist_val, c, r in sorted_results:
             print "Dist: {} Cluster: {}  Data: {}".format(dist_val,c,r)
 
-        self.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime")
+        self.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime", dir_name)
 

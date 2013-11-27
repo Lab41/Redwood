@@ -16,7 +16,6 @@
 
 
 """
-This filter provides analysis and scoring based on the prevalence of files and directories across sources. The general idea is that a file with a higher prevalence would have a higher reputation than a file that occurs less often.  
 
 Created on 19 October 2013
 @author: Lab41
@@ -28,8 +27,7 @@ import matplotlib.pyplot as plt
 
 class FilterPrevalence(RedwoodFilter):
     """
-    This FilterPrevalence class uses the occurences of files across systems to 
-    assign a reputation score to each unique file
+    This filter provides analysis and scoring based on the prevalence of files and directories across sources. The general idea is that a file with a higher prevalence would have a higher reputation than a file that occurs less often.  
     """
 
     def __init__(self):
@@ -51,121 +49,6 @@ class FilterPrevalence(RedwoodFilter):
         print "[+] detect_anomalies <source_name> <out_file>"
         print "---view the top anomalies for the given source"
         print "\t-out_file:  file to write results to"
-
-    def discover_histogram_by_os(self, os_name):
-        """
-        Displays a histogram of the file distributions across all systems
-        of the specified OS
-
-        :param os_name: name of the operating system
-        """
-       
-        #TODO: we can speed this up considerably by doing the counts on the db then
-        #just displaying a bar graph.  Currently having the hist function ingest
-        #large numbers of points can take way to long
-
-        print '[+] Running \"Histogram by OS\"..."'
-        cursor = self.cnx.cursor()
-        
-        query = """
-            SELECT global_file_prevalence.unique_file_id, global_file_prevalence.count 
-            FROM redwood.global_file_prevalence LEFT JOIN file_metadata 
-            ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id 
-            WHERE file_metadata.os_id = (SELECT os.id FROM os where os.name = "{}")
-        """.format(os_name)
-
-        cursor.execute(query)
-
-        li = [x[1] for x in cursor.fetchall()]
-        cursor.close()
-        num_systems = self.get_num_systems(os_name)
-
-        print "NumSystems: {}".format(num_systems)
-
-        bins = range(1, num_systems+2)
-        fig = plt.figure()
-        ax = fig.add_subplot(111, title="File Prevalence of {}".format(os_name))
-        ax.hist(li, color = 'b', bins = bins)
-        ax.set_xlabel("Num of Systems")
-        ax.set_ylabel("File Occurrences")
-    
-        plt.show()
-
-
-    def discover_histogram_by_source(self, source_name):
-        """
-        Displays a histogram of the file distribution of a single source as it relates
-        to all occurrences of that file across all systems
-
-        :param source_name: The name of the souce 
-        """
-
-        print '[+] Running \"Histogram by Source\"...'
-        cursor = self.cnx.cursor()
-       
-        src_info = self.get_source_info(source_name)
-          
-        query = """
-            SELECT global_file_prevalence.unique_file_id, global_file_prevalence.count 
-            FROM redwood.global_file_prevalence LEFT JOIN file_metadata 
-            ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id WHERE file_metadata.source_id = {}
-        """.format(src_info.source_id)
-        
-        cursor.execute(query)
-        li = [x[1] for x in cursor.fetchall()]
-        cursor.close()
-        num_systems = self.get_num_systems(src_info.os_id)
-        bins = range(1, num_systems+2)
-        fig = plt.figure()
-        ax = fig.add_subplot(111, title="File Prevalence of {}".format(src_info.source_name))
-        ax.hist(li, color = 'b', bins = bins)
-        ax.set_xlabel("Num of Systems")
-        ax.set_ylabel("File Occurrences")
-    
-        plt.show()
-
-
-    def discover_detect_anomalies(self, source, out):
-        """
-        Conducts an anomaly search on a given source
-
-        :param source: source
-        """
-        
-        cursor = self.cnx.cursor()
-
-        src_info = self.get_source_info(source)
-        
-        if src_info is None:
-            print "*** Error: Source not found"
-            return
-
-        #anomaly type:  low prevalence files in normally high prevalence directories
-        print "Anomaly Detection: Unique files in common areas"
-        print "running..."
-         
-        query = """
-            SELECT (global_dir_combined_prevalence.average - global_file_prevalence.average) as difference, 
-            unique_path.full_path, file_metadata.file_name
-            FROM global_file_prevalence 
-            LEFT JOIN file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
-            LEFT JOIN global_dir_combined_prevalence ON file_metadata.unique_path_id = global_dir_combined_prevalence.unique_path_id
-            LEFT JOIN unique_path ON file_metadata.unique_path_id = unique_path.id
-            where file_metadata.source_id = {}
-            HAVING difference > 0
-            ORDER BY difference desc limit 0, 500
-        """.format(src_info.source_id)
-
-
-        cursor.execute(query)
-
-        with open(out, "w") as f:
-            v=0
-            for x in cursor.fetchall():
-                f.write("{}: {}    {}{}".format(v))
-                v+=1
-             
-        cursor.close()
 
 
     def update(self, source):
@@ -263,3 +146,145 @@ class FilterPrevalence(RedwoodFilter):
         cursor.execute(query)   
         self.cnx.commit()
         cursor.close()
+
+
+
+    ##################################################
+    #
+    #       DISCOVERY FUNCTIONS
+    #
+    ##################################################
+
+    def discover_histogram_by_os(self, os_name):
+        """
+        Displays a histogram of the file distributions across all systems
+        of the specified OS
+
+        :param os_name: name of the operating system
+        """
+       
+        print '[+] Running \"Histogram by OS\"..."'
+        cursor = self.cnx.cursor()
+       
+ 
+        num_systems = self.get_num_systems(os_name)
+       
+        if num_systems is None or num_systems == 0:
+            print "Error: OS {} does not exist".format(os_name)
+            return
+
+        bins = range(1, num_systems+2)
+
+        query = """
+            SELECT COUNT(file_metadata.os_id), global_file_prevalence.count FROM global_file_prevalence 
+            LEFT JOIN file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
+            WHERE file_metadata.os_id = (SELECT os.id FROM os WHERE os.name = "{}")
+            GROUP BY global_file_prevalence.count ORDER BY global_file_prevalence.count ASC;
+        """.format(os_name)
+
+        cursor.execute(query)
+        data = cursor.fetchall()
+        counts, ranges = zip(*data)
+        
+        fig = plt.figure()
+        perc = int( float(sum(counts[1:])) / sum(counts) * 100)
+        ax = fig.add_subplot(111, title="File Prevalence of {} with {}% > 1".format(os_name, perc))
+        ax.hist(ranges, weights=counts, bins = bins)
+        ax.set_xlabel("Num of Systems")
+        ax.set_ylabel("File Occurrences")    
+        
+        plt.xticks(bins)
+        
+        plt.show()
+
+
+    def discover_histogram_by_source(self, source_name):
+        """
+        Displays a histogram of the file distribution of a single source as it relates
+        to all occurrences of that file across all systems
+
+        :param source_name: The name of the souce 
+        """
+
+        print '[+] Running \"Histogram by Source\"...'
+   
+        cursor = self.cnx.cursor()
+        
+        src_info = self.get_source_info(source_name)
+        
+        if src_info is None:
+            print "Source {} does not exist".format(source_name)
+            return
+        
+        num_systems = self.get_num_systems(src_info.os_id)
+        bins = range(1, num_systems+2)
+       
+        query = """
+            SELECT COUNT(file_metadata.id), global_file_prevalence.count FROM global_file_prevalence 
+            LEFT JOIN file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
+            WHERE file_metadata.source_id = (SELECT media_source.id FROM media_source WHERE media_source.name = "{}")
+            GROUP BY global_file_prevalence.count ORDER BY global_file_prevalence.count ASC;
+        """.format(source_name)
+
+        cursor.execute(query)
+
+        data = cursor.fetchall()
+        counts, ranges = zip(*data)
+        
+        fig = plt.figure()
+        perc = int( float(sum(counts[1:])) / sum(counts) * 100)
+        ax = fig.add_subplot(111, title="File Prevalence of {} with {}% > 1".format(src_info.source_name, perc))
+        ax.hist(ranges, weights=counts, bins = bins)
+        ax.set_xlabel("Num of Systems")
+        ax.set_ylabel("File Occurrences")    
+        
+        plt.xticks(bins)
+        
+        plt.show()
+
+
+
+
+    def discover_detect_anomalies(self, source, out):
+        """
+        Conducts an anomaly search on a given source
+
+        :param source: source
+        """
+        
+        cursor = self.cnx.cursor()
+
+        src_info = self.get_source_info(source)
+        
+        if src_info is None:
+            print "*** Error: Source not found"
+            return
+
+        #anomaly type:  low prevalence files in normally high prevalence directories
+        print "Anomaly Detection: Unique files in common areas"
+        print "running..."
+         
+        query = """
+            SELECT (global_dir_combined_prevalence.average - global_file_prevalence.average) as difference, 
+            unique_path.full_path, file_metadata.file_name
+            FROM global_file_prevalence 
+            LEFT JOIN file_metadata ON global_file_prevalence.unique_file_id = file_metadata.unique_file_id
+            LEFT JOIN global_dir_combined_prevalence ON file_metadata.unique_path_id = global_dir_combined_prevalence.unique_path_id
+            LEFT JOIN unique_path ON file_metadata.unique_path_id = unique_path.id
+            where file_metadata.source_id = {}
+            HAVING difference > 0
+            ORDER BY difference desc limit 0, 500
+        """.format(src_info.source_id)
+
+
+        cursor.execute(query)
+
+        with open(out, "w") as f:
+            v=0
+            for x in cursor.fetchall():
+                f.write("{}: {}    {}{}\n".format(v, x[0], x[1], x[2]))
+                v+=1
+             
+        cursor.close()
+
+

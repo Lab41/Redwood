@@ -48,8 +48,8 @@ class RedwoodFilter(object):
 
         print "[+] Running list_by_source..."
         cursor = self.cnx.cursor()
-        dir_val = ("desc" if direction is "top" else  "asc")
-        
+        dir_val = ("desc" if direction == "top" else  "asc")
+
         query = """
             SELECT {}.score, unique_path.full_path, file_metadata.file_name 
             FROM {} LEFT JOIN file_metadata ON {}.id = file_metadata.unique_file_id
@@ -57,6 +57,8 @@ class RedwoodFilter(object):
             WHERE file_metadata.source_id = (SELECT media_source.id FROM media_source WHERE media_source.name = "{}")
             ORDER BY {}.score {} LIMIT 0, {}
         """.format(self.score_table, self.score_table, self.score_table, source, self.score_table, dir_val, count)
+
+        print query
 
         cursor.execute(query)
 
@@ -81,7 +83,7 @@ class RedwoodFilter(object):
       
         return sorted(combined, key=lambda tup: tup[0])
 
-    def visualize_scatter(self, counts, codes, data, codebook, num_clusters, xlabel="", ylabel=""):
+    def visualize_scatter(self, counts, codes, data, codebook, num_clusters, xlabel="", ylabel="", title=""):
         """
         Generates a 2-d scatter plot visualization of two feature data for 
 
@@ -116,10 +118,11 @@ class RedwoodFilter(object):
         plt.scatter(codebook[:,0], codebook[:,1], color='orange', s=260)
        
         colors = ['red', 'blue', 'green', 'purple', 'cyan', 'black', 'brown', 'grey']
-
+       
         for idx in range(num_clusters):
             plt.scatter(list_arrays[idx][:,0], list_arrays[idx][:,1], c=colors[idx]) 
         
+        plt.title(title)
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.show()
@@ -158,9 +161,10 @@ class RedwoodFilter(object):
         """
 
         """
-
-        if os_name_or_id.isdigit() is False:
-           os_id = "(SELECT DISTINCT os.id from os where os.name = \"{}\")".format(os_name_or_id)
+        if isinstance(os_name_or_id, (int, long, float, complex)):
+            os_id = os_name_or_id
+        else:
+            os_id = "(SELECT DISTINCT os.id from os where os.name = \"{}\")".format(os_name_or_id)
 
         cursor = self.cnx.cursor()
         
@@ -173,6 +177,9 @@ class RedwoodFilter(object):
         
         cursor.execute(query)
         r = cursor.fetchone()
+        if r is None:
+            return None
+        
         return r[0]
 
     def get_source_id(self, source_name):
