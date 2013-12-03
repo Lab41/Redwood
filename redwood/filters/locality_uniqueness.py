@@ -196,7 +196,6 @@ class LocalityUniqueness(RedwoodFilter):
 
         cursor = self.cnx.cursor()
         src_info = core.get_source_info(self.cnx, source_name)        
-
         query = ("""SELECT count(*) from lu_analyzed_sources
                 where id = '{}';""").format(src_info.source_id)
 
@@ -211,11 +210,12 @@ class LocalityUniqueness(RedwoodFilter):
             cursor.execute(query)
             self.cnx.commit()
         #returns all files sorted by directory for the given source
-        query = ("""
-                SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash 
-                FROM joined_file_metadata 
-                where source_id = {} order by parent_id asc""").format(src_info.source_id)
-        
+        query = """
+            SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash 
+            FROM joined_file_metadata 
+            where source_id = {} order by parent_id asc
+            """.format(src_info.source_id)
+       
         cursor.execute(query)
        
         files = list()

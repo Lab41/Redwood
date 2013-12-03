@@ -25,9 +25,11 @@ This module contains core helper functions for Redwood
 import sys
 import os
 import inspect
+import time
 from collections import namedtuple
 from redwood.filters import RedwoodFilter
 from redwood.filters import filter_list
+from redwood.foundation.prevalence import PrevalenceAnalyzer
 
 SourceInfo = namedtuple('SourceInfo', 'source_id source_name os_id os_name')
 
@@ -86,9 +88,9 @@ def get_source_info(cnx, source_name):
     
     query = """
         SELECT media_source.id as source_id, media_source.name as source_name, os.id as os_id, os.name as os_name
-        FROM redwood.media_source LEFT JOIN os ON media_source.os_id = os.id where media_source.name = "{}";
+        FROM media_source LEFT JOIN os ON media_source.os_id = os.id where media_source.name = "{}";
     """.format(source_name)
-    
+   
     cursor.execute(query)
     r =  cursor.fetchone()
     
@@ -126,6 +128,35 @@ def get_num_systems(cnx, os_name_or_id):
         return None
     
     return r[0]
+
+
+def update_analyzers_and_filters(cnx, sources):
+    """
+    Runs Analyzers and Filters against each source in the source_os_list, updating the 
+    approriate tables
+
+    :param sources: list of SourceInfo instances
+    """
+    print "...Beginning Analyzers and Filters for inputted sources"
+
+    start_time = time.time() 
+
+    #now let's run the prevalence analyzer
+    pu = PrevalenceAnalyzer(cnx)
+    pu.update(sources)
+
+    #set the cnx for each plugin
+    for p in filter_list:
+        p.cnx = cnx
+
+    for source in sources:
+        print "==== Beginning filter analysis of {} ====".format(source.source_name)
+        for p in filter_list:
+            p.update(source.source_name)
+
+    elapsed_time = time.time() - start_time
+    print "...completed Analyzers and Filters in {}".format(elapsed_time) 
+
 
 
 def table_exists(cnx, name):

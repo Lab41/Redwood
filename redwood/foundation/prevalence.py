@@ -29,7 +29,7 @@ class PrevalenceAnalyzer():
     def __init__(self, cnx):
         self.cnx = cnx      
 
-    def update(self, source_os_list):
+    def update(self, sources):
         """
         Analyzes all sources from the source_os_list, storing results in the global tables
         for prevalence
@@ -44,13 +44,13 @@ class PrevalenceAnalyzer():
         cursor = self.cnx.cursor()
         
         #iterate through each of the new sources, updating the prevalence table accordingly
-        for source_id, source_name, os_id in source_os_list:
+        for source in sources:
             
             #will need to fetch the number of systems first for the given os
             query = """
                 select COUNT(os.name) from os LEFT JOIN media_source ON(os.id = media_source.os_id) 
                 where os.id = {} GROUP BY os.name 
-            """.format(os_id)
+            """.format(source.os_id)
 
             cursor.execute(query)
             num_systems = cursor.fetchone()[0]
@@ -69,14 +69,14 @@ class PrevalenceAnalyzer():
                 ON (s.os_idd = file_metadata.os_id) where media_source.id = {} AND file_metadata.unique_file_id is not null) t 
                 GROUP BY t.os_idd, t.unique_file_id
                 ON DUPLICATE KEY UPDATE  count=count+1
-            """.format(os_id, source_id)
+            """.format(source.os_id, source.source_id)
             
             cursor.execute(query)
         
             #TODO: use a local variable for num_systems
             query = """
                 UPDATE global_file_prevalence SET num_systems = {}, average =  (SELECT count/num_systems) where os_id = {}
-            """.format(num_systems, os_id)
+            """.format(num_systems, source.os_id)
         
             cursor.execute(query)
             
@@ -92,13 +92,13 @@ class PrevalenceAnalyzer():
                     where file_metadata.file_name = '/' AND file_metadata.source_id = {} 
                     GROUP BY file_metadata.os_id, unique_path.id
                     ON DUPLICATE KEY UPDATE count=count+1
-            """.format(source_id)
+            """.format(source.source_id)
 
             cursor.execute(query)
 
             query = """
                 UPDATE global_dir_prevalence SET num_systems = {}, average = (SELECT count/num_systems) where os_id = {}
-            """.format(num_systems, os_id)
+            """.format(num_systems, source.os_id)
 
             cursor.execute(query)
 

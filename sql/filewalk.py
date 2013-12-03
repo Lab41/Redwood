@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 import urllib
+import csv
 from Queue import Queue
 
 # 8 byte unique ID generator give a path.
@@ -25,7 +26,11 @@ def generateUniqueId(path):
     return  long(binascii.hexlify(combined), 16)
 
 
-def write_stat_info(basename, dirname, file_id, parent_id, dirname_digest, file_handle):
+def write_stat_info(basename, dirname, file_id, parent_id, dirname_digest, csv_writer):
+    
+    #need to escape commas from base name and dirname since we are creating a csv
+
+    
     path = os.path.join(dirname, basename)
 
     try:
@@ -37,37 +42,13 @@ def write_stat_info(basename, dirname, file_id, parent_id, dirname_digest, file_
     url = urllib.pathname2url(path)
     file_type = mimetypes.guess_type(url)[0]
     hash_val = hash_file(path, file_type)
-    data = {
-            'hash':hash_val,
-            'dir_hash':dirname_digest,
-            'file_id':file_id,
-            'dirname':dirname,
-            'parent_id':parent_id,
-            'filename':basename,
-            'inode':stat_obj.st_ino,
-            'device':stat_obj.st_dev,
-            'permissions':str(oct(stat_obj.st_mode)),
-            'uid':stat_obj.st_uid,
-            'gid':stat_obj.st_gid,
-            'size':stat_obj.st_size,
-            'create_time':long(os.path.getctime(path)),
-            'access_time':long(stat_obj.st_atime),
-            'mod_time':long(stat_obj.st_mtime),
-            'metadata_change_time':long(stat_obj.st_ctime),
-            'user_flags':"",
-            'links':stat_obj.st_nlink,
-            'disk_offset':"",
-            'entropy':'',
-            'file_content_status':'',
-            'extension':os.path.splitext(basename)[1],
-            'file_type':file_type,
-           }
 
-    file_handle.write("{file_id:d},{parent_id:d},{dirname:s},{filename:s},{hash},"
-            "{dir_hash:s},{inode:d},{device:d},{permissions:s},{uid:d},{gid:g},{size:d},"
-            "{create_time:d},{access_time:d},{mod_time:d},{metadata_change_time:d},"
-            "{user_flags:s},{links:d},{disk_offset},{entropy},"
-            "{file_content_status},{extension:s},{file_type:s}\n".format(**data))
+#file_id, parent_id,dirname,basename,hash,fs_id,device,permissions,uid,gid,size,create_time,access_time,mod_time,metadata_change_time,user_flags,links,disk_offset,entropy,file_content_status,extensions,file_type
+
+    csv_writer.writerow([file_id, parent_id, dirname, basename, hash_val, dirname_digest, stat_obj.st_ino, stat_obj.st_dev,
+                        str(oct(stat_obj.st_mode)), stat_obj.st_uid, stat_obj.st_gid, stat_obj.st_size, long(os.path.getctime(path)),
+                        long(stat_obj.st_atime), long(stat_obj.st_mtime), long(stat_obj.st_ctime), "", stat_obj.st_nlink, "", "", "",
+                        os.path.splitext(basename)[1], file_type])
 
 
 BUFFER = 4096
@@ -122,11 +103,11 @@ def main(argv):
     stack = list()
 
     with open(out_file, "w") as file_handle:
-
-        file_handle.write("file_id, parent_id,dirname,basename,hash,fs_id,device,permissions,"
-                "uid,gid,size,create_time,access_time,mod_time,metadata_change_time,"
-                "user_flags,links,disk_offset,entropy,"
-                "file_content_status,extensions,file_type\n")
+        
+        csv_writer = csv.writer(file_handle)
+        csv_writer.writerow(["file_id","parent_id","dirname","basename","hash","fs_id","device","permissions",
+                "uid","gid","size","create_time","access_time","mod_time","metadata_change_time",
+                "user_flags","links","disk_offset","entropy","file_content_status","extensions","file_type"])
 
         # start the queue with a 0 value
         stack.append(0L)
@@ -167,10 +148,10 @@ def main(argv):
             root_digest = h.hexdigest()
 
             # write the parent directory
-            write_stat_info("/", root,  new_parent_id, parent_id, root_digest, file_handle)
+            write_stat_info("/", root,  new_parent_id, parent_id, root_digest,csv_writer)
             for f in files:
-                _id = generateUniqueId(f)
-                write_stat_info(f, root, _id, new_parent_id, root_digest, file_handle)
+                _id = generateUniqueId(os.path.join(root, f))
+                write_stat_info(f, root, _id, new_parent_id, root_digest, csv_writer)
             file_handle.flush()
 
 if __name__=="__main__":

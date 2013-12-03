@@ -11,7 +11,7 @@ CREATE PROCEDURE map_staging_table(IN source_id INT, IN os_id INT)
         INSERT IGNORE INTO `unique_path` (full_path, path_hash)
                 SELECT dirname, dirname_hash
                 FROM `staging_table`;
-        INSERT IGNORE INTO `file_metadata` 
+        INSERT INTO `file_metadata` 
                 (id,
                 unique_file_id,
                 source_id,

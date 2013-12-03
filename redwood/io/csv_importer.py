@@ -29,9 +29,10 @@ import string
 import time
 from datetime import datetime
 import MySQLdb
+from redwood.helpers.core import SourceInfo
 from redwood.foundation.prevalence import PrevalenceAnalyzer
 from redwood.filters import filter_list
-
+import redwood.helpers.core as core
 
 def db_load_file(connection, path):
     """
@@ -39,6 +40,7 @@ def db_load_file(connection, path):
 
     :param connection: connection object for the database
     :param path: path where the file is located
+    :return SourceInfo representing the inputted source
     """
     
     try:
@@ -58,13 +60,14 @@ def db_load_file(connection, path):
     os_id = None
 
     source_name = fields[2]
+    os_name = fields[1]
 
     print "=== Loading \"{}\" into database ===".format(source_name)
     #transaction for adding to media and os tables. Both succeed or both fail
     try:
 
         data_os = {
-            'name':fields[1],
+            'name':os_name,
         }
 
         #add os 
@@ -79,7 +82,7 @@ def db_load_file(connection, path):
             return                                        
 
     #now get the os_id for the os_name
-    query = "SELECT os.id FROM os WHERE os.name = \"{}\"".format(fields[1])
+    query = "SELECT os.id FROM os WHERE os.name = \"{}\"".format(os_name)
     cursor.execute(query)
     r = cursor.fetchone()
     os_id = r[0]
@@ -117,7 +120,7 @@ def db_load_file(connection, path):
     path = path.replace('\\','\\\\')
     #load raw csv into the staging table from the client
     add_staging_table = ("LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table` "
-                         "FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' "
+                         "FIELDS TERMINATED BY ','  ENCLOSED BY '\"' LINES TERMINATED BY '\\n' "
                          "IGNORE 1 LINES "
                          "(global_file_id, parent_id, dirname, basename,contents_hash,dirname_hash,filesystem_id,device_id,"
                          "attributes,user_owner,group_owner,size,@created_param,@accessed_param,@modified_param,@changed_param,"
@@ -183,7 +186,7 @@ def db_load_file(connection, path):
     print "...completed in {}".format(total_time)
     cursor.close()
     
-    return (source_id, source_name, os_id)
+    return SourceInfo(source_id, source_name, os_id, os_name) 
 
 def run(cnx, path):
     """
@@ -214,25 +217,6 @@ def run(cnx, path):
         print 'Please input a valid file or a directory for import'
         return
 
-    start_time = time.time() 
-
-    #now let's run the prevalence analyzer
-    pu = PrevalenceAnalyzer(cnx)
-    pu.update(src_os_list)
-    elapsed_time = time.time() - start_time
-    print "...completed in {}".format(elapsed_time)
-    
-    start_time = time.time()
-
-    #set the cnx for each plugin
-    for p in filter_list:
-        p.cnx = cnx
-
-    for src_id, source_name, os_id in src_os_list:
-        print "==== Beginning filter analysis of {} ====".format(source_name)
-        for p in filter_list:
-            p.update(source_name)
-
-    elapsed_time = time.time() - start_time
-    print "...completed in {}".format(elapsed_time)
+    #update the analyzers and filters
+    core.update_analyzers_and_filters(cnx,src_os_list)
 
