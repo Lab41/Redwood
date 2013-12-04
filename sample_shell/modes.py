@@ -7,6 +7,7 @@ import redwood.filters
 import redwood.io.csv_importer as csv_load
 from redwood.filters import filter_list
 import redwood.helpers.core as core
+from redwood.foundation.aggregator import Aggregator
 import time
 
 
@@ -139,6 +140,13 @@ class FilterMode(GeneralMode):
         for plugin in filter_list:
             print "{}............{}".format(i, plugin.name)
             i+=1
+    def aggregate_scores(self, args = None):
+        print "Aggregating Scores"
+        ag = Aggregator(self.cnx)
+        if len(args) > 0:
+            ag.aggregate(filter_list, args[1])
+        else:
+            ag.aggregate(filter_list)
     def help(self, args=None):
         print "Filter Mode"
         print "[*] list"
