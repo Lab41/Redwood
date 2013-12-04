@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS file_metadata (
     source_id INT UNSIGNED NOT NULL,
     unique_path_id INT UNSIGNED NOT NULL,
 	parent_id BIGINT UNSIGNED NULL,
-    file_name VARCHAR(255) NOT NULL,
+    file_name VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
     filesystem_id MEDIUMTEXT NULL DEFAULT NULL,
     device_id INT NULL DEFAULT NULL,
     attributes INT NULL DEFAULT NULL,

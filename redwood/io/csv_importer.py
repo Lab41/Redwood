@@ -113,7 +113,7 @@ def db_load_file(connection, path):
         if connection:
             connection.rollback()                       
             print "*** Error %d: %s" % (e.args[0],e.args[1])
-            return                                        
+            sys.exit(1)                                        
 
     media_source_id = cursor.lastrowid
     
@@ -173,14 +173,15 @@ def db_load_file(connection, path):
         connection.commit() 
         print "...data transfer to staging table in {}".format(time.time() - start_time)
         start_time = time.time()
+        
         cursor.callproc('map_staging_table', (media_source_id, os_id))
         cursor.execute("DROP TABLE `staging_table`;")
         connection.commit()
         print "...data written from staging table to main tables in {}".format(time.time() - start_time)
     except Exception as err:
-        print(err)
+        print "Exception occurred: {}".format(err)
         cursor.close()
-        return
+        sys.exit(1)
     
     total_time =  time.time() - start_time
     print "...completed in {}".format(total_time)
