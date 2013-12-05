@@ -9,7 +9,7 @@ import exceptions
 import ConfigParser
 import redwood.filters
 import redwood.connection.connect as rconn
-from controller import SessionController
+from redwood.shell.controller import SessionController
 
 
 def main(argv):
