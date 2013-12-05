@@ -54,12 +54,12 @@ def find_anomalies(rows, sorted_results, sorted_code_counts):
     """
     #definitely want to adjust these distance thresholds
     distance_threshold0 = 1.0
-    distance_threshold1 = 1.25
+    distance_threshold1 = 1.5
     distance_threshold2 = 5.0
 
    #print "Code counts: {} smallest: {} ".format(sorted_code_counts, sorted_code_counts[0][0])
     smallest_count = sorted_code_counts[0][1]
-    if smallest_count < 2:
+    if smallest_count < 3:
         target = sorted_code_counts[0][0]  #smallest cluster
     else:
         target = -1
@@ -67,7 +67,7 @@ def find_anomalies(rows, sorted_results, sorted_code_counts):
 
     for c, d, r in sorted_results:
 
-        #a lone cluster with just 1 element
+        #a lone cluster with less than 3 elements element
         if c == target:
             score = .3
         if d > distance_threshold2:
@@ -97,11 +97,12 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
     :return: nothing... use the rows input as an output to append to
     """
     
-
     srt = time.time()
     num_obs = len(files)
    
     if(num_obs < num_clusters):
+        for f in files:
+            rows.put((f[0], .5))
         return
  
     #zero out the array that will contain the inodes
@@ -109,7 +110,7 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
 
     i = 0
     
-    for inode,mod_date,_,_,_,_, in files:
+    for file_metadata_id,mod_date,full_path,file_name,inode,parent_id, in files:
         seconds = calendar.timegm(mod_date.utctimetuple())
         observations[i][0] = inode
         observations[i][1] = seconds
@@ -124,7 +125,8 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
     #the centroids will not be found.  For now, just throw out that data, but
     #figure out a solution later
     if len(codebook) != num_clusters:
-        files = list()
+        for f in files:
+            rows.put((f[0], .5)) 
         return
 
     code, dist = vq(whitened, codebook)
@@ -142,7 +144,6 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
     sorted_results =  sorted(combined, key=lambda tup: tup[0])
     
     find_anomalies(rows, sorted_results, sorted_codes) 
-     
     elp = time.time() - srt
     #print "completed pid {} time: {}".format(os.getpid(), elp)
              
@@ -160,7 +161,7 @@ class LocalityUniqueness(RedwoodFilter):
     def __init__(self, cnx=None):
         self.score_table = "lu_scores"
         self.name = "Locality Uniqueness"
-
+        self.cnx = cnx
     def usage(self):
         """
         Prints the usage statements for the discovery functions
@@ -196,19 +197,7 @@ class LocalityUniqueness(RedwoodFilter):
 
         cursor = self.cnx.cursor()
         src_info = core.get_source_info(self.cnx, source_name)        
-        query = ("""SELECT count(*) from lu_analyzed_sources
-                where id = '{}';""").format(src_info.source_id)
 
-        cursor.execute(query)
-
-        found = cursor.fetchone() 
-        if found[0] > 0:
-            print "already analyzed source {}".format(source_name)
-            return
-        else:
-            query = "insert into lu_analyzed_sources (id, name) VALUES('{}','{}')".format(src_info.source_id, source_name)
-            cursor.execute(query)
-            self.cnx.commit()
         #returns all files sorted by directory for the given source
         query = """
             SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash 
@@ -224,26 +213,35 @@ class LocalityUniqueness(RedwoodFilter):
         pool = Pool(processes=4)              # start 4 worker processes
         manager = Manager()
         rows = manager.Queue()
+        is_first = True
         
-        is_first = 0
         parent_id_prev = None
         #should iterate by dir of a given source at this point
         for(file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash_val) in cursor:
-           
-            if parent_id_prev != parent_id and is_first != 0:
+            
+            if is_first is True:
+                is_first = False
                 parent_id_prev = parent_id
-                pool.apply_async(do_eval, [rows, full_path, files, num_clusters, 2])
-                files = list()
-            else:
-                is_first = 1
-                #make sure to omit directories
+
+            #if parent_id is diff than previous, we are in new directory, so pack it up for analysis
+            if parent_id_prev != parent_id:
                 
-                if file_name != '/' and hash_val != "":
-                    files.append((file_metadata_id, last_modified, full_path,file_name, filesystem_id, parent_id))
-      
+                parent_id_prev = parent_id
+                
+                if len(files) > 0:
+                    pool.apply_async(do_eval, [rows, full_path, files, num_clusters, 2])
+                    files = list()
+            
+            #make sure to omit directories from the clustering analy               
+            if file_name != '/' and hash_val != "":
+                files.append((file_metadata_id, last_modified, full_path,file_name, filesystem_id, parent_id))
+       
+        if len(files) > 0:
+            pool.apply_async(do_eval, [rows, full_path, files, num_clusters, 2])
+
         pool.close()
         pool.join() 
-           
+         
         input_rows = []
         count = 0
         while rows.empty() is False:
@@ -252,12 +250,12 @@ class LocalityUniqueness(RedwoodFilter):
             count +=1
             if count % 50000 is 0:
                 print "...sending {} results to server".format(len(input_rows))
-                cursor.executemany("""INSERT INTO locality_uniqueness(file_metadata_id, score) values(%s, %s)""", input_rows)
+                cursor.executemany("""REPLACE INTO locality_uniqueness(file_metadata_id, score) values(%s, %s)""", input_rows)
                 input_rows = []
                 count=0
         print "...sending {} results to server".format(len(input_rows))
         
-        cursor.executemany("""INSERT INTO locality_uniqueness(file_metadata_id, score) values(%s, %s)""", input_rows)
+        cursor.executemany("""REPLACE INTO locality_uniqueness(file_metadata_id, score) values(%s, %s)""", input_rows)
         self.cnx.commit()
         #need to drop the lu_scores and recalculate
         cursor.execute("drop table if exists lu_scores")
@@ -293,7 +291,6 @@ class LocalityUniqueness(RedwoodFilter):
         cursor = self.cnx.cursor()
         cursor.execute("DROP TABLE IF EXISTS lu_scores")
         cursor.execute("DROP TABLE IF EXISTS locality_uniqueness")
-        cursor.execute("DROP TABLE IF EXISTS lu_analyzed_sources")
         self.cnx.commit()
 
 
@@ -302,19 +299,6 @@ class LocalityUniqueness(RedwoodFilter):
         Build all persistent tables associated with this filter
         """
         cursor = self.cnx.cursor()
-
-        query = ("CREATE TABLE IF NOT EXISTS lu_analyzed_sources ( "
-                "id INT UNSIGNED NOT NULL,"
-                "name VARCHAR(45) NOT NULL,"
-                "PRIMARY KEY(id),"
-                "CONSTRAINT fk_media_source_id FOREIGN KEY (id)"
-                "REFERENCES media_source(id)"
-                "ON DELETE NO ACTION ON UPDATE NO ACTION"
-                ") ENGINE=InnoDB;")
-
-        cursor.execute(query)
-       
-        self.cnx.commit()
 
         query = ("CREATE table IF NOT EXISTS locality_uniqueness ("
                 "file_metadata_id BIGINT unsigned unique,"
