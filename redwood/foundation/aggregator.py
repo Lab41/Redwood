@@ -37,20 +37,25 @@ class Aggregator():
         
         weights = list()
 
-        if not dist_str is None:
-            p = re.compile('\d+:\d+')
-            found = p.findall(dist_str)
-            for f in found:
-                weights.append(f.split(':'))
+        if not dist_str is None:            
+            for s in dist_str:
+                p = s.split(':')
+                weights.append((int(p[0]), float(p[1])))
+            total = 0
+            for w in weights:
+                total += float(w[1])
+            print total
+            if total != 1.0 and total != 100.0:
+                print "The filter weights must total to 1 or 100"
+                return
+            print weights
+
         else:
             i = 0
             even_split = 1 / float(len(filter_list))
             for f in filter_list:
                 weights.append((i, even_split))
                 i += 1
-
-      
-        
 
         query = """
         UPDATE unique_file  
@@ -76,4 +81,6 @@ class Aggregator():
         query += ")"
         print query
         cursor = self.cnx.cursor()
-        cursor.execute(query)        
+        cursor.execute(query)
+        self.cnx.commit()
+        cursor.close()
