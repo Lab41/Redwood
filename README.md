@@ -47,7 +47,7 @@ from redwood.filters.filter_prevalence import FilterPrevalence
 import redwood.io.csv_importer as loader
 
 #connect to the database
-cnx = connect.connect_with_config("/Users/paulm/Desktop/db.cfg")
+cnx = connect.connect_with_config("my_db.cfg")
 #load a csv to the database
 loader.run(cnx,"directory_containing_csv_data_pulls")
 
@@ -163,13 +163,13 @@ Notes about filter creation
 *  The self.cnx instance variable must be set prior to running any of the functions of the filter. The self.cnx is a mysql connection object
 
 ##Screen Shots 
-<i>Sceenshot of the Sample Shell</i>
+<i>Sceenshot of the Sample Shell</i><br>
 ![Shell](https://raw.github.com/Lab41/Redwood/master/images/redwood_0.png "Redwood Shell")
-<i>Sceenshot of the Filter Options</i>
+<i>Sceenshot of the Filter Options</i><br>
 ![Shell](https://raw.github.com/Lab41/Redwood/master/images/discovery.png "Filter Options")
-<i>Sceenshot of the File Distribution discovery function for Filter Prevalence</i>
+<i>Sceenshot of the File Distribution discovery function for Filter Prevalence</i><br>
 ![Shell](https://raw.github.com/Lab41/Redwood/master/images/histogram0.png "Prevalence Filter file distribution")
-<i>Sceenshot of the discovery function for Locality Uniqueness</i>
+<i>Sceenshot of the discovery function for Locality Uniqueness</i><br>
 ![Clustering](https://raw.github.com/Lab41/Redwood/master/images/clustering.png "Locality Uniquenss Clustering")
 
 
