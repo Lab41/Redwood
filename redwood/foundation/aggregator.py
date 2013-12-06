@@ -61,7 +61,6 @@ class Aggregator():
                 if total != 1.0:
                     print "The filter weights must total 1 or 100"
                     return
-                return
             except:
                 print "There was an error with your sytax, try again"
                 return
@@ -94,7 +93,7 @@ class Aggregator():
             
         query = query[0:len(query)-3]
         query += ")"
-        print query
+        #print query
         cursor = self.cnx.cursor()
         cursor.execute(query)
         self.cnx.commit()
