@@ -230,6 +230,10 @@ class FilterPrevalence(RedwoodFilter):
         cursor.execute(query)
 
         data = cursor.fetchall()
+        
+        if data == None:
+            return
+        
         counts, ranges = zip(*data)
         
         fig = plt.figure()
