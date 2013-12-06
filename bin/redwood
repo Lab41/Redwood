@@ -24,7 +24,6 @@ def main(argv):
 
     print "Establishing connection to database...\n",
 
-    print "Config: {}".format(argv[0])
     cnx = rconn.connect_with_config(argv[0])
 
     SessionController(cnx).run()
