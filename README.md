@@ -1,5 +1,9 @@
 #Association-Based Data Reduction (REDWOOD)
 
+
+![Redwood  L](https://raw.github.com/Lab41/Redwood/master/images/logo/redwood_logo.png "Redwood")
+
+
 This project implements statistical methods to assist in identifying anomalous files from a larger data set.  
 
 ##Quick Setup
