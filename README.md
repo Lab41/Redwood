@@ -20,7 +20,7 @@ The instructions that follow should get you up an running quickly.  Redwood has 
 #### Prep the Database
 Redwood uses a MySQL database to store metadata. In order to use Redwood, you will need to first set up your own MySQL DB, then run the following two SQL scripts to create the required tables and subroutines.
 
-```
+```bash
 mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_redwood_db.sql
 mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_redwood_sp.sql
 ```
@@ -69,7 +69,7 @@ fp.run_survey("some_source")
 #append to the python path the Redwood directory
 export PYTHONPATH=/path/to/Redwood
 #from the Redwood directory run
-python sample_shell/run.py /path/to/config
+python bin/redwood /path/to/config
 ```
 
 ##Documentation
@@ -156,6 +156,9 @@ class YourFilterName(RedwoodFilter)
     def discover_your discover_funcM(self, arg0, ..., argN):
         your code
 
+    #survey function
+    def run_survey(source):
+        your code
 ```
 
 Notes about filter creation
@@ -165,11 +168,11 @@ Notes about filter creation
 ##Screen Shots 
 <i>Sceenshot of the Sample Shell</i><br>
 ![Shell](https://raw.github.com/Lab41/Redwood/master/images/redwood_0.png "Redwood Shell")
-<i>Sceenshot of the Filter Options</i><br>
+<br><i>Sceenshot of the Filter Options</i><br>
 ![Shell](https://raw.github.com/Lab41/Redwood/master/images/discovery.png "Filter Options")
-<i>Sceenshot of the File Distribution discovery function for Filter Prevalence</i><br>
+<br><i>Sceenshot of the File Distribution discovery function for Filter Prevalence</i><br>
 ![Shell](https://raw.github.com/Lab41/Redwood/master/images/histogram0.png "Prevalence Filter file distribution")
-<i>Sceenshot of the discovery function for Locality Uniqueness</i><br>
+<br><i>Sceenshot of the discovery function for Locality Uniqueness</i><br>
 ![Clustering](https://raw.github.com/Lab41/Redwood/master/images/clustering.png "Locality Uniquenss Clustering")
 
 
