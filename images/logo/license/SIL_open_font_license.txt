@@ -1,0 +1,274 @@
+SIL Open Font License (OFL)
+
+General Information
+
+Text of the SIL Open Font License
+
+The OFL FAQ
+
+Fonts licensed via the OFL
+
+OFL Graphics
+
+
+    Overview
+    Documents
+        Current version - 1.1
+        Translations
+    Using the OFL
+    History
+        Community review
+        OFL fonts
+    Details and rationale
+        FLOSS-friendliness
+            The 4 FSF Freedoms
+            DFSG compatibility
+            OSD compatibility
+        "Human readable" version and visual representation
+            Terminology
+            Visual representation
+            Attribution
+            Share Alike
+            Embedding
+            DerivativeRenaming
+            BundlingWhenSelling
+
+
+
+New version of the OFL-FAQ available: version 1.1-update3
+
+There is a new version of the OFL-FAQ (version 1.1-update3) available based on feedback from the wider open font design community. Various sections have been clarified but the main changes are mostly related to web font use and modification. There is also a separate discussion paper on Web Font and Reserved Font Names.
+
+Overview
+
+
+
+The SIL Open Font License (OFL) is a free, libre and open source license specifically designed for fonts and related software based on our experience in font design and linguistic software engineering.
+
+The OFL provides a legal framework and infrastructure for worldwide development, sharing and improvement of fonts and related software in a collaborative manner. It enables font authors to release their work under a common license that allows use, bundling, modification and redistribution. It encourages shared value, is not limited to any specific computing platform or environment, and can be used by other organizations or individuals.
+
+The OFL meets the specific needs of typographic design and engineering as well as the gold standards of the FLOSS (Free/Libre and Open Source Software) community, namely the cultural values and guidelines from the FSF 1, the Debian Free Software Guidelines2, as well as the Open Source Definition3. It draws inspiration from concepts and elements found in other licenses, but our improvements in the specific area of fonts have made the licensing model work better than other approaches currently in use.
+
+ SIL International serves language communities worldwide, building their capacity for sustainable language development, by means of research, translation, training and materials development. We have been thinking about more open and participative models for a while, for example through our partnerships with UNESCO (Initiative B@bel) and our work on the Gentium typeface. See  www.sil.org/resources/software_fonts for a detailed list of free/libre and open source software resources provided by SIL.
+
+We want to:
+
+enable others to participate in our projects
+enable others to cater to needs for which we don't have the resources
+share our wealth of knowledge and experience in the area of writing systems and pass on our tools
+equip the community to meet its font needs
+We serve the peoples of the world without regard to their material wealth, so we are grateful to those that do fund our work. Please visit  Donate to SIL International for information on supporting our efforts.
+
+Documents
+
+We have gone through a lot of effort to make our license readable and easily understood by users, designers and software developers as well as package maintainers and distributors. To make the OFL even more human-readable, we have provided a FAQ (Frequently Asked Questions) to help everyone understand the intent and the practical aspects of using the license itself. Although it already covers many items, the FAQ will grow as needed. Please let us know if you have more questions.
+
+Current version - 1.1
+We recommend all authors use version 1.1 of the OFL, but version 1.0 is given here for reference. A full list of changes from 1.0 to 1.1 can be found on the OFL Review page. The most important change for authors is that no font names are reserved by default. Reserved Font Names must be explicitly listed alongside the copyright statement in the OFL header.
+
+Format	OFL	OFL-FAQ
+web (html)	OFL 1.1	OFL-FAQ 1.1-update3
+plain text
+	OFL Plaintext
+Nicolas Spalinger & Victor Gaultney, 2007-02-26
+Download "OFL.txt", Text document, 5KB [45809 downloads]
+	OFL-FAQ Plaintext (1.1-update3)
+Nicolas Spalinger & Victor Gaultney, 2013-09-19
+Download "OFL-FAQ.txt", Text document, 57KB [19412 downloads]
+OFL 1.1 Documents
+
+Format	OFL	OFL-FAQ
+web (html)	OFL 1.0	OFL-FAQ 1.0
+plain text
+	OFL 1.0 Plaintext
+Nicolas Spalinger & Victor Gaultney, 2005-11-22
+Download "OFL10.txt", Text document, 4KB [10968 downloads]
+	OFL-FAQ 1.0 Plaintext
+Nicolas Spalinger & Victor Gaultney, 2005-11-22
+Download "ofl-faq10.txt", Text document, 18KB [8591 downloads]
+OFL 1.0 Documents (for reference only)
+
+Translations
+We also recognise the need for people who are not familiar with English to be able to understand the OFL and this FAQ better - in their own language. If you are an experienced translator, you are very welcome to help by translating the OFL and its FAQ so that designers and users in your language community can understand the license better. But only the original English version of the license has legal value and has been approved by the community. Translations do not count as legal substitutes and should only serve as a way to explain the original license. SIL - as the author and steward of the license for the community at large - does not approve any translation of the OFL as legally valid because even small translation ambiguities could be abused and create problems.
+
+We give permission to publish unofficial translations into other languages provided that they comply with the following guidelines:
+
+1) Put the following disclaimer in both English and the target language stating clearly that the translation is unofficial:
+
+"This is an unofficial translation of the SIL Open Font License into $language. It was not published by SIL International, and does not legally state the distribution terms for fonts that use the OFL. A release under the OFL is only valid when using the original English text.
+
+However, we recognize that this unofficial translation will help users and designers not familiar with English to understand the SIL OFL better and make it easier to use and release font families under this collaborative font design model. We encourage designers who consider releasing their creation under the OFL to read the FAQ in their own language if it is available.
+Please go to  http://scripts.sil.org/OFL for the official version of the license and the accompanying FAQ."
+
+2) Keep your unofficial translation current and update it at our request if needed, for example, if there is any ambiguity which could lead to confusion.
+
+If you start such a unofficial translation effort of the OFL and its accompanying FAQ please let us know, thank you.
+
+Using the OFL
+
+It is relatively simple to use the OFL for your own font project. If you are the copyright owner you only need to do the following:
+
+Put your copyright and Reserved Font Names information at the beginning of the main OFL.txt file in place of the dedicated placeholders (marked with the <> characters). Include this file in your release package.
+Put your copyright and the OFL text with your chosen Reserved Font Name(s) into your font files (the copyright and license fields). A link to the OFL text on the OFL web site is an acceptable (but not recommended) alternative. Also add this information to any other components (build scripts, glyph databases, documentation, test files, etc). Accurate metadata in your font files is beneficial to you as an increasing number of applications are exposing this information to the user. For example, clickable links can bring users back to your website and let them know about other work you have done or services you provide. Depending on the format of your fonts and sources, you can use template human-readable headers or machine-readable metadata. You should also double-check that there is no conflicting metadata in the font itself contradicting the license, such as the fstype bits in the os2 table or fields in the name table.
+Write an initial FONTLOG.txt for your font and include it in the release package (see Section 6 and Appendix A of the OFL-FAQ for details including a template).
+Include the relevant practical documentation on the license by adding the current OFL-FAQ.txt file in your package.
+If you wish, you can use the OFL Graphics on your web page.
+More information can be found in the OFL-FAQ.
+
+History
+
+Current version: 1.1
+
+2013-09-19 - OFL-FAQ 1.1-update3.
+
+2013-05-17 - OFL-FAQ 1.1-update3-draft and discussion paper on Web Font and Reserved Font Names available for review and comment.
+
+2010-08-23 - OFL-FAQ 1.1-update2.
+
+2009-04-06 - OFL recognized as compliant with the OSD (Open Source Definition) by the OSI board and placed on their  list of approved licenses.
+
+2007-02-26 - Version 1.1 released.
+
+2006-03-18 - A minor revision of the OFL entered the review phase. OFL-1.1-review1 was followed by OFL-1.1-review2 a few months later.
+
+2006-01-23 - OFL recognized as a free license by the FSF (Free Software Foundation) on their  License List.
+
+2005-11-22 - Version 1.0 released.
+
+2005-11-07 - Version 1.0-review2 submitted to ofl-discuss.
+
+2005-09-07 - Version 1.0-review1 submitted to the first round of public reviewers.
+
+Community review
+Between November 2005 and January 2007 the OFL was in a public review stage, with efforts going towards version 1.1. We selected a number of reviewers we felt were the relevant experts and sought their input. We submitted our draft for review and received very insightful feedback.
+
+The review period is over and even though we feel version 1.1 will likely meet the needs for open font licensing for quite some time, we remain open to community feedback. Please contact us with your queries and suggestions.
+
+Various font-related BoFs (Birds of a Feather meetings) have taken place at FLOSS conference (like Libre Graphics Meeting, Ubuntu Summit, GUADEC, DebConf, TextLayoutSummit among others) to discuss what would be needed to improve the font landscape. One key aspect was appropriate licensing of the fonts, flexibility to maintain and branch fonts without breaking rendering, interoperability across distributions, and the definition of a core set of fonts with recognized glyph quality, sufficient Unicode coverage and a good community-recognized license. The OFL has been recognised by many contributors to these discussion as a good solution for these issues.
+
+The goals of the OFL and its methodology have been presented and discussed at major conferences from the type industry like  AtypI.
+
+Open font-related presentation have also been made at  TUG (TeX User Group conferences).
+
+There is a campaign with support from various key organisations in the FLOSS community (Unifont.org, Freedesktop.org, the GNOME foundation, KDE e.V., the Linux Foundation and the Free Software Foundation) to encourage more designers and supporting institutions to consider choosing the OFL for their font projects. Visit  Unifont.org/go_for_ofl for more details and ways you can participate.
+
+The OFL is now well-established as the most widely used licensing model for releasing and developing unrestricted font software. It is being used successfully by various organisations, both for-profit and not-for-profit, to release fonts of varying levels of scope and complexity. A number of institutions have now made the OFL their default recommended license for fonts.
+
+OFL fonts
+We intend to use the OFL for all our future font releases, and will re-release our existing and older font packages under the OFL as we have personnel time. The priority of older packages will depend on demand.
+
+If you release (or intend to release) your font(s) under the OFL, let us know and we may place a link to the fonts on our OFL fonts page.
+
+Details and rationale
+
+FLOSS-friendliness
+The OFL is designed to be in tune with the FLOSS (Free/Libre and Open Source Software) culture. It builds upon good ideas already in existence in some free/libre and open projects but by bringing our extensive font design experience and linguistic software engineering know-how into the mix, we have produced a font-specific license which is simpler, more human-readable, neutral and reusable and dedicated to the needs of font creators.
+
+The OFL authors were inspired by the partnership between  GNOME and  Bitstream for the  Vera family of fonts and the licensing model which was chosen. They have also studied the community impact and some of the difficulties faced by this model.
+
+The 4 FSF Freedoms
+The OFL is listed and recognized as a valid Free Software license on the FSF  License List. It complies with the  Free Software Definition and its four foundational freedoms as defined by the Free Software Foundation for the GNU project:
+
+Use: the freedom to use font software for any purpose. (freedom 0)
+Study and adaptation: the freedom to study how font software works, and adapt it to your needs (freedom 1). Access and rights to the source code is a precondition for this.
+Redistribution: the freedom to redistribute copies of the font software so you can help your neighbor (freedom 2).
+Improvement and redistribution of modifications: the freedom to improve the font software and release your improvements (freedom 3), so that the community benefits. Access and rights to the source code is a precondition for this.
+DFSG compatibility
+Font Software released under the OFL complies with the  Debian Free Software Guidelines:
+
+reselling: DFSG #1
+source code redistribution: DFSG #2
+derivatives: DFSG #3
+"compromise" clause permitting name change: DFSG #4 (this is very important for font derivatives for artistic integrity and anti-collision purposes)
+no discrimination against people/groups: DFSG #5
+no discrimination against fields of endeavour: DFSG #6
+license distribution: DFSG #7
+non-Debian specific: DFSG #8
+no contamination of other software: DFSG #9
+Various font families under OFL have been accepted in the main archive of Debian (as well as Ubuntu) by the ftp-masters. An increasing number of Debian and Ubuntu developers are maintaining font packages under the OFL in main (the component of the archive which only holds Free/Libre and Open Source software).
+
+OSD compatibility
+The OFL complies with the  Open Source Definition:
+
+free redistribution: #1
+source code: #2
+derived works: #3
+integrity of the author(s) source code: #4 (with the possibility of requiring a name change)
+no discrimination against persons or groups: #5
+no discrimination against fields of endeavour: #6
+distribution of license: #7
+license must not be specific to a product: #8
+license must not restrict other software: #9
+license must be technology-neutral: #10
+The OSI (Open Source Initiative) has recognized the OFL's compliance with the OSD and placed it on their   list of approved licenses.
+
+"Human readable" version and visual representation
+The spirit and working model of the OFL can be expressed in human-readable Creative Commons-like 4 terminology using the following permits / requires elements and visual representations:
+
+Please note that this terminology and visual representation is simply an expression of the working model of the license and has no legal value in itself. It is designed to help you understand and use the Open Font License in a similar way to the OFL FAQ. It is always intended to link back to the full license text of the OFL. Please note that although the terminology and visual representation of the OFL is based on work by Creative Commons, the OFL is not officially affiliated with Creative Commons.
+
+Terminology
+permits
+Distribution, Reproduction, Embedding, DerivativeWorks
+
+requires
+Attribution, Notice, ShareAlike, DerivativeRenaming, BundlingWhenSelling
+
+Visual representation
+
+Human-readable representation
+
+
+
+(the Distribution, Reproduction, DerivativeWorks and Notice elements are implied and not represented as icons).
+
+This is what each icon means:
+
+Attribution
+
+requirement
+
+The icon shows a person and represents the author(s).
+The requirement is for proper attribution of the author(s): name(s) and notice(s) must be preserved and abuse of the name(s) and reputation of the author(s) is forbidden.
+See condition 2) and 4) of the OFL.
+
+Share Alike
+
+requirement
+
+The icon shows a cycle and represents the way font software can be re-used by all under equivalent terms.
+The requirement is for derivative works to remain under the same license to encourage fair collaboration and prevent anyone from locking away contributions.
+See condition 5) of the OFL
+
+Embedding
+
+permission
+
+The icon shows a letter on a piece of paper and represents a font placed inside a document.
+The permission is for fonts to be embedded in any kind of document. This does not affect the licensing status of the document but makes it easier for documents to be used in different environments.
+See the first paragraph of the Permission and Conditions section as well as section 5) of the OFL.
+
+DerivativeRenaming
+
+requirement
+
+The icon shows letters A and B close to each other representing a font (A) from which another font (B) of a different shape is derived. It refers to a derivative branched from the original font and bearing a new name.
+The requirement is for derivative fonts to be renamed to allow branching while retaining artistic integrity.
+See condition 3) of the OFL
+
+BundlingWhenSelling
+
+requirement
+
+The icon shows a dollar sign between parentheses. The dollar sign represents money (although there are many other currencies in the world) and the parentheses refers to the bundling.
+The requirement is for fonts to be bundled with software when they are sold. Fonts cannot be sold on their own. Redistribution without selling is not restricted.
+See condition 1) of the OFL.
+
+
+
+1	The Free Software Foundation Licensing Lab:  www.fsf.org/licensing
+2	The Debian Free Software Guidelines:  www.debian.org/social_contract
+3	The Open Source Definition:  opensource.org/docs/definition.php
+4	Creative Commons:  http://creativecommons.org/about/licenses/
+© 2003-2013 SIL International, all rights reserved, unless otherwise noted elsewhere on this page.
+Provided by SIL's Non-Roman Script Initiative. Contact us at nrsi@sil.org.
