@@ -300,13 +300,17 @@ class FilterPrevalence(RedwoodFilter):
         img_by_src = "hist_by_src.png"
         img_by_os = "hist_by_os.png"
         survey_file = "survey.html"
-        survey_dir = "survey_{}".format(self.name)
+        survey_dir = "survey_{}_{}".format(self.name, source_name)
         
         
         resource_dir = os.path.join(survey_dir, resources) 
         html_file = os.path.join(survey_dir, survey_file)
-    
-        shutil.rmtree(survey_dir)
+        
+        try: 
+            shutil.rmtree(survey_dir)
+        except:
+            pass
+        
         os.mkdir(survey_dir)
         os.mkdir(resource_dir)
         
