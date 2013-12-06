@@ -22,19 +22,22 @@ Created on 19 October 2013
 """
 
 from redwood.filters.redwood_filter import *
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import redwood.helpers.core as core
+import shutil
+
 
 class FilterPrevalence(RedwoodFilter):
     """
     This filter provides analysis and scoring based on the prevalence of files and directories across sources. The general idea is that a file with a higher prevalence would have a higher reputation than a file that occurs less often.  
     """
 
-    def __init__(self):
-        self.name = "Prevalence"
+    def __init__(self, cnx=None):
+        self.name = "prevalence"
         self.score_table = "fp_scores"
-        self.cnx = None         
+        self.cnx = cnx         
 
     def usage(self):
         """
@@ -151,7 +154,7 @@ class FilterPrevalence(RedwoodFilter):
     #
     ##################################################
 
-    def discover_histogram_by_os(self, os_name):
+    def discover_histogram_by_os(self, os_name, output=None):
         """
         Displays a histogram of the file distributions across all systems
         of the specified OS
@@ -191,10 +194,12 @@ class FilterPrevalence(RedwoodFilter):
         
         plt.xticks(bins)
         
-        plt.show()
+        if output is None:
+            plt.show()
+        else:
+            plt.savefig(output)
 
-
-    def discover_histogram_by_source(self, source_name):
+    def discover_histogram_by_source(self, source_name, output=None):
         """
         Displays a histogram of the file distribution of a single source as it relates
         to all occurrences of that file across all systems
@@ -235,11 +240,11 @@ class FilterPrevalence(RedwoodFilter):
         ax.set_ylabel("File Occurrences")    
         
         plt.xticks(bins)
-        
-        plt.show()
-
-
-
+       
+        if output is None:
+            plt.show()
+        else:
+            plt.savefig(output)
 
     def discover_detect_anomalies(self, source, out):
         """
@@ -283,4 +288,56 @@ class FilterPrevalence(RedwoodFilter):
              
         cursor.close()
 
+    def run_survey(self, source_name):
+        
+        print "...running survey for {}".format(self.name)
+        
+        resources = "resources"
+        img_by_src = "hist_by_src.png"
+        img_by_os = "hist_by_os.png"
+        survey_file = "survey.html"
+        survey_dir = "survey_{}".format(self.name)
+        
+        
+        resource_dir = os.path.join(survey_dir, resources) 
+        html_file = os.path.join(survey_dir, survey_file)
+    
+        #rm survey dir if it exists
+        try:
+            os.remove(survey_dir)
+        except OSError:
+            pass
 
+        shutil.rmtree(survey_dir)
+        os.mkdir(survey_dir)
+        os.mkdir(resource_dir)
+        
+        src_info = core.get_source_info(self.cnx, source_name)
+        
+        self.discover_histogram_by_source(source_name, os.path.join(resource_dir, img_by_src))
+        self.discover_histogram_by_os(src_info.os_name, os.path.join(resource_dir, img_by_os))
+
+        results = self.show_results("bottom", 50, source_name, None)
+
+
+        with open(html_file, 'w') as f:
+            f.write("""
+
+            <html>
+            <h2>Filter Prevalence Snapshot</h2>
+            <body>
+                <h3>Histogram for {}</h3>
+                <img src="{}">
+                <h3>Histogram for operating system {}</h3>
+                <img src="{}">
+            """.format( source_name, 
+                        os.path.join(resources, img_by_src), 
+                        src_info.os_name,
+                        os.path.join(resources, img_by_os)
+                        ))
+            f.write("<h3>The lowest 50 reputations for this filter</h3>")
+            f.write("<table border=\"1\">")
+            f.write("<tr><th>Score</th><th>Parent Path</th><th>Filename</th></tr>")
+            for r in results:
+                f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+        return survey_dir

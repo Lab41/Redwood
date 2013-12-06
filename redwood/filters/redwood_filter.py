@@ -30,9 +30,9 @@ class RedwoodFilter(object):
     :ivar cnx: connection instance to the database
     :ivar score_table: name of the table containing reputation scores. The table must have exactly two columns (id, score) 
     """
-    def __init__(self):
+    def __init__(self, cnx=None):
         self.name = "generic"
-        self.cnx = None    
+        self.cnx = cnx    
         self.score_table = None
     def clean(self):
         """
@@ -89,14 +89,21 @@ class RedwoodFilter(object):
 
         cursor.execute(query)
 
-        with open (out, "w") as f:
-            v = 0
-            for x in cursor.fetchall():
-                f.write("{}: {}   {}{}\n".format(v, x[0], x[1], x[2]))
-                v += 1 
-        
+        if out is None:
+            return cursor.fetchall()
+        else:
+
+            with open (out, "w") as f:
+                v = 0
+                for x in cursor.fetchall():
+                    f.write("{}: {}   {}{}\n".format(v, x[0], x[1], x[2]))
+                    v += 1 
+            
         cursor.close()
  
+    def run_survey(self, source_id):
+        pass
+
     def run_func(self, func_name, args):
         """
         Helper function that will run the <func_name> with <args> for this filter
