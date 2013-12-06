@@ -21,9 +21,8 @@ Created on 19 October 2013
 """
 
 
-import re
-
-from redwood.filters import redwood_filter
+#import re
+#from redwood.filters import redwood_filter
 
 class Aggregator():
     
@@ -36,20 +35,36 @@ class Aggregator():
     def aggregate(self, filter_list, dist_str=None):
         
         weights = list()
+        filters = list()
 
-        if not dist_str is None:            
-            for s in dist_str:
-                p = s.split(':')
-                weights.append((int(p[0]), float(p[1])))
-            total = 0
-            for w in weights:
-                total += float(w[1])
-            print total
-            if total != 1.0 and total != 100.0:
-                print "The filter weights must total to 1 or 100"
+        if not dist_str is None:
+            if len(dist_str) > len(filter_list):
+                print ("Error there are only " + str(len(filter_list)) + 
+                " filters, you supplied weights for " + str(len(dist_str)))
                 return
-            print weights
-
+            try:
+                for s in dist_str:
+                    p = s.split(':')
+                    filter_id = int(p[0])
+                    if filter_id in filters:
+                        print ("Error mutliple values entered for filter " + 
+                        str(filter_id))
+                        return
+                    filters.append(filter_id)
+                    percent = float(p[1])
+                    if percent > 1:
+                        percent = percent / float(100)
+                    weights.append((filter_id, percent))
+                total = 0
+                for w in weights:
+                    total += w[1]
+                if total != 1.0:
+                    print "The filter weights must total 1 or 100"
+                    return
+                return
+            except:
+                print "There was an error with your sytax, try again"
+                return
         else:
             i = 0
             even_split = 1 / float(len(filter_list))
