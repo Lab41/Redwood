@@ -19,7 +19,8 @@ class GeneralMode(object):
         self.prompt = ""
         self.controller = controller
     def quit(self, args=None):
-        self.cnx.close()
+        if self.cnx != None:
+            self.cnx.close()
         sys.exit(1)
     def back(self, args=None):
         self.controller.popMode()
@@ -144,7 +145,7 @@ class FilterMode(GeneralMode):
         print "Aggregating Scores"
         ag = Aggregator(self.cnx)
         if len(args) > 0:
-            ag.aggregate(filter_list, args[1])
+            ag.aggregate(filter_list, args)
         else:
             ag.aggregate(filter_list)
     def help(self, args=None):
