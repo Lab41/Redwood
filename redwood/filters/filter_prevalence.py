@@ -274,11 +274,15 @@ class FilterPrevalence(RedwoodFilter):
             LEFT JOIN unique_path ON file_metadata.unique_path_id = unique_path.id
             where file_metadata.source_id = {}
             HAVING difference > 0
-            ORDER BY difference desc limit 0, 500
+            ORDER BY difference desc limit 0, 100
         """.format(src_info.source_id)
 
 
         cursor.execute(query)
+
+        if out is None:
+            return cursor.fetchall()
+
 
         with open(out, "w") as f:
             v=0
@@ -302,12 +306,6 @@ class FilterPrevalence(RedwoodFilter):
         resource_dir = os.path.join(survey_dir, resources) 
         html_file = os.path.join(survey_dir, survey_file)
     
-        #rm survey dir if it exists
-        try:
-            os.remove(survey_dir)
-        except OSError:
-            pass
-
         shutil.rmtree(survey_dir)
         os.mkdir(survey_dir)
         os.mkdir(resource_dir)
@@ -316,28 +314,41 @@ class FilterPrevalence(RedwoodFilter):
         
         self.discover_histogram_by_source(source_name, os.path.join(resource_dir, img_by_src))
         self.discover_histogram_by_os(src_info.os_name, os.path.join(resource_dir, img_by_os))
-
-        results = self.show_results("bottom", 50, source_name, None)
+        anomalies = self.discover_detect_anomalies(source_name, None)
+        results = self.show_results("bottom", 100, source_name, None)
 
 
         with open(html_file, 'w') as f:
             f.write("""
-
             <html>
+            <style type="text/css">
+                .redwood-header{{
+                    background-color:orange;
+                }}
+            </style>
             <h2>Filter Prevalence Snapshot</h2>
             <body>
-                <h3>Histogram for {}</h3>
+                <h3 class="redwood-header">Histogram for {}</h3>
                 <img src="{}">
-                <h3>Histogram for operating system {}</h3>
+                <h3 class="redwood-header">Histogram for Operating System - {}</h3>
                 <img src="{}">
             """.format( source_name, 
                         os.path.join(resources, img_by_src), 
                         src_info.os_name,
                         os.path.join(resources, img_by_os)
                         ))
-            f.write("<h3>The lowest 50 reputations for this filter</h3>")
+  
+            f.write("<h3 class=\"redwood-header\">The lowest 100 reputations for this filter</h3>")
             f.write("<table border=\"1\">")
             f.write("<tr><th>Score</th><th>Parent Path</th><th>Filename</th></tr>")
             for r in results:
                 f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+            f.write("</table>") 
+
+            f.write("<h3 class=\"redwood-header\">Those top 100 anomalous files</h3>")
+            f.write("<table border=\"1\">")
+            f.write("<tr><th>Anomaly Value</th><th>Parent Path</th><th>Filename</th></tr>")
+            for r in anomalies:
+                f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+            f.write("</table>") 
         return survey_dir

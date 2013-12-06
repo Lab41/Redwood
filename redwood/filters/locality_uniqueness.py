@@ -37,6 +37,7 @@ from multiprocessing import Pool, Queue, Manager
 import Queue
 import redwood.helpers.core as core
 import redwood.helpers.visual as visual
+import shutil
 
 warnings.filterwarnings('ignore')
 
@@ -160,7 +161,7 @@ class LocalityUniqueness(RedwoodFilter):
 
     def __init__(self, cnx=None):
         self.score_table = "lu_scores"
-        self.name = "Locality Uniqueness"
+        self.name = "Locality_Uniqueness"
         self.cnx = cnx
     def usage(self):
         """
@@ -393,3 +394,49 @@ class LocalityUniqueness(RedwoodFilter):
 
         visual.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime", dir_name)
 
+
+
+    def run_survey(self, source_name):
+
+        print "...running survey for {}".format(self.name)
+
+        resources = "resources"
+        survey_file = "survey.html"
+        survey_dir = "survey_{}".format(self.name)
+
+        resource_dir = os.path.join(survey_dir, resources) 
+        html_file = os.path.join(survey_dir, survey_file)
+        
+        try:
+            shutil.rmtree(survey_dir)
+        except:
+            pass
+
+        os.mkdir(survey_dir)
+        os.mkdir(resource_dir)
+        
+        results = self.show_results("bottom", 100, source_name, None)
+
+ 
+        with open(html_file, 'w') as f:
+
+            f.write("""
+            <html>
+            <head>
+            <style type="text/css">
+                .redwood-header{
+                    background-color:orange;
+                }
+            </style>
+            </head>
+            <body>
+            <h2>Locality Uniqueness Snapshot</h2> 
+            """)
+            f.write("<h3 class=\"redwood-header\">The lowest 100 reputations for this filter</h3>")
+            f.write("<table border=\"1\">")
+            f.write("<tr><th>Score</th><th>Parent Path</th><th>Filename</th></tr>")
+            for r in results:
+                f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+            f.write("</table>") 
+            
+            f.write("</body></html>")
