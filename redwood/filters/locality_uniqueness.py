@@ -44,41 +44,42 @@ warnings.filterwarnings('ignore')
 #NOTE: the find_anomalies and do_eval functions are outside the class so that we
 #can run them in parallel using the apply_async function for thread pools
 
-def find_anomalies(rows, sorted_results, sorted_code_counts):
+SMALL_CLUSTERS_SCORE = .3
+
+def find_anomalies(rows, sorted_results, code_count_dict):
     """
     Helper function that given a list of results from kmeans will assign
     scores to each file given their distance form their centroid
 
     :param rows: output rows to append to
-    :param sorted_rows: results from kmeans sorted
+    :param sorted_rows: results from kmeans sorted by first column of their code id
     :sorted_code_counts: centroids sorted by number of observations
     """
     #definitely want to adjust these distance thresholds
     distance_threshold0 = 1.0
-    distance_threshold1 = 1.5
+    distance_threshold1 = 2.0
     distance_threshold2 = 5.0
-
-   #print "Code counts: {} smallest: {} ".format(sorted_code_counts, sorted_code_counts[0][0])
-    smallest_count = sorted_code_counts[0][1]
-    if smallest_count < 3:
-        target = sorted_code_counts[0][0]  #smallest cluster
-    else:
-        target = -1
-
-
+    distance_threshold3 = 10.0
+    
+    #assign scores based on distance 
     for c, d, r in sorted_results:
 
-        #a lone cluster with less than 3 elements element
-        if c == target:
-            score = .3
-        if d > distance_threshold2:
+        #get code count
+        code_count = code_count_dict[c]
+
+        #if a file belongs to a cluster with fewer than three elements, we automatically assign in lower score
+        if code_count < 3:
+            score = SMALL_CLUSTERS_SCORE
+        elif d > distance_threshold3:
             score = .1
+        elif d > distance_threshold2:
+            score = .2
         elif d> distance_threshold1:
             score = .3
         elif d> distance_threshold0:
             score = .4
         else:
-            score = 1
+            score = .8
         file_metadata_id = r[0]
         rows.put((file_metadata_id, score))
 
@@ -138,13 +139,13 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
         d[c] += 1
 
 
-    #sorted the map codes to get the smallest to largest cluster
+    #sorted the map codes to get the smallest to largest cluster (currently not used)
     sorted_codes = sorted(d.iteritems(), key = operator.itemgetter(1))
     
     combined = zip(code, dist, files)
     sorted_results =  sorted(combined, key=lambda tup: tup[0])
     
-    find_anomalies(rows, sorted_results, sorted_codes) 
+    find_anomalies(rows, sorted_results, d) 
     elp = time.time() - srt
     #print "completed pid {} time: {}".format(os.getpid(), elp)
              
@@ -395,14 +396,25 @@ class LocalityUniqueness(RedwoodFilter):
         visual.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime", dir_name)
 
 
+    ##################################################
+    #
+    #       SURVEY
+    #
+    ##################################################
 
     def run_survey(self, source_name):
+        """
+        Runs survey for this filter capturing discovery functions and reputation score results
+
+        :param source_name: name of the source to survey
+        :return survey_dir: location where survey results were saved
+        """
 
         print "...running survey for {}".format(self.name)
 
         resources = "resources"
         survey_file = "survey.html"
-        survey_dir = "survey_{}".format(self.name)
+        survey_dir = "survey_{}_{}".format(self.name, source_name)
 
         resource_dir = os.path.join(survey_dir, resources) 
         html_file = os.path.join(survey_dir, survey_file)
