@@ -27,7 +27,7 @@ import os
 import inspect
 import time
 from collections import namedtuple
-from redwood.filters import RedwoodFilter
+from redwood.filters.redwood_filter import RedwoodFilter
 from redwood.filters import filter_list
 from redwood.foundation.prevalence import PrevalenceAnalyzer
 

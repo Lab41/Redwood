@@ -48,6 +48,7 @@ import redwood.io.csv_importer as loader
 
 #connect to the database
 cnx = connect.connect_with_config("my_db.cfg")
+
 #load a csv to the database
 loader.run(cnx,"directory_containing_csv_data_pulls")
 
