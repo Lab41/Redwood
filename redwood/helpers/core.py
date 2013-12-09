@@ -35,7 +35,13 @@ SourceInfo = namedtuple('SourceInfo', 'source_id source_name os_id os_name')
 
 
 def get_filter_by_name(filter_name):
+    """
+    Fetches an instance of a loaded filter by its name
 
+    :param filter_name: the name of the filter
+
+    :return an instance of a loaded filter with name filter_name
+    """
     for f in filter_list:
         if f.name == "filter_name":
             return f
@@ -48,6 +54,8 @@ def import_filters(path, cnx):
     to the global filter_list
 
     :param path: path where the modules reside
+    :param cnx: an instance of the connection
+
     :return list of newly add filter instances
     """
 
@@ -90,6 +98,7 @@ def get_source_info(cnx, source_name):
     """
     Retrieves a SourceInfo instance given a <source_name>
 
+    :param cnx: a instance of the connection
     :param source_name: name of the media source
 
     :return SourceInfo instance or None if not found
@@ -175,6 +184,7 @@ def table_exists(cnx, name):
 
     :param cnx: mysql connection instance
     :param name: table name
+    
     :return True if exists, else False
     """
     cursor = cnx.cursor()

@@ -37,8 +37,10 @@ def connect_with_config(config_path):
     Given a path, returns a connection object
 
     :param config_path: path to the configuration file
-    :return MySQL connection object
+    
+    :return MySQL connection object 
     """
+    
     cnx = None
     
     if config_path is None:

@@ -5,7 +5,9 @@
 ![Redwood](https://raw.github.com/Lab41/Redwood/master/images/logo/redwood_logo.png "Redwood")
 
 
-<b>Redwood is a Python framework intended to identify anomalous files through analyzing the file metadata of a collection of media</b>. Each file analyzed is assigned a score that signals its reputation relative to other files in the system --the lower a reputation score, the more likely that a file is anomalous.  The final reputation score of a given file is based on an aggegation of scores assigned to it by modules that we call "Filters".   A Filter is a plugin whose functionality is only limited by the creativity of the developer.  Redwood can support any number of Filters, so long as a Filter extends the RedwoodFilter class and produces a table assigning a reputation score to each unique file in the system.  Much of the Redwood framework is aimed at making the process of adding new Filters to the system as frictionless as possible (see the Filter section below for more information).   Redwood also provides an effective data model for analyzing and storing file metadata, an API for interacting with that data, a simple shell for executing Redwood commands, and two example Filters (a "prevalence" Filter and a "locality uniqueness" Filter.  Though sample Filters are included in the project, ultimately the effectiveness of Redwood will be based on the Filters that you write for the particular anomaly that you are looking for. To that end, Redwood is nothing more than a simple framework for connecting Filters to a well-formed data model.   
+<p><b>Redwood is a Python framework intended to identify anomalous files through analyzing the file metadata of a collection of media</b>. Each file analyzed is assigned a score that signals its reputation relative to other files in the system --the lower a reputation score, the more likely that a file is anomalous.  The final reputation score of a given file is based on an aggegation of scores assigned to it by modules that we call "Filters".</p>
+<p>A Filter is a plugin whose functionality is only limited by the creativity of the developer.  Redwood can support any number of Filters, so long as a Filter extends the RedwoodFilter class and produces a table assigning a reputation score to each unique file in the system.  Much of the Redwood framework is aimed at making the process of adding new Filters to the system as frictionless as possible (see the Filter section below for more information).</p>   
+<p>In addition to the Filters, Redwood also provides an effective data model for analyzing and storing file metadata, an API for interacting with that data, a simple shell for executing Redwood commands, and two example Filters (a "prevalence" Filter and a "locality uniqueness" Filter.  Though sample Filters are included in the project, ultimately the effectiveness of Redwood will be based on the Filters that you write for the particular anomaly that you are looking for. To that end, Redwood is nothing more than a simple framework for connecting Filters to a well-formed data model.</p> 
 
 ##Quick Setup
 The instructions that follow should get you up and running quickly.  Redwood has been tested on  OS X and Linux. Windows will likely work with a few changes.
@@ -41,7 +43,7 @@ password:your_password
 
 There are two ways that you can run Redwood.  If you just want to play with the tool, and maybe create a couple of filters, the "Redwood Shell" method is probably the best choice.  If you want to make modifications to the core package and or create your own UI, then you probably want to use the API.  Examples of how to do both are below:
 
-### Using the Redwood Shell
+#### Using the Redwood Shell
 
 ```bash
 #append to the python path the Redwood directory
@@ -57,7 +59,6 @@ python bin/redwood /path/to/config
 import redwood.connection.connect as connect
 import redwood.io.csv_importer as loader
 import redwood.helpers.core as core
-from redwood.filters import filter_list
 
 #connect to the database
 cnx = connect.connect_with_config("my_db.cfg")
@@ -82,11 +83,7 @@ fp.run_survey("some_source")
 ##Documentation
 from the root project directory, run the following
 ```bash
-sphinx-apidoc -o docs redwood -F
-pushd docs
-make html
-make man
-popd
+sphinx-apidoc -o docs redwood -F; pushd docs; make html; make man; popd
 ```
 
 ###Data

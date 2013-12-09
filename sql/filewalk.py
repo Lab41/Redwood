@@ -64,6 +64,7 @@ def hash_file(path, file_type):
             or file_type == 'inode/x-empty' \
             or file_type == 'application/x-coredump' \
             or file_type == 'inode/directory'):
+        ret = "0"
         return ret
 
     fd = None
@@ -105,7 +106,7 @@ def main(argv):
     with open(out_file, "w") as file_handle:
         
         csv_writer = csv.writer(file_handle)
-        csv_writer.writerow(["file_id","parent_id","dirname","basename","hash","fs_id","device","permissions",
+        csv_writer.writerow(["file_id","parent_id","dirname","basename","contents_hash", "dirname_hash", "fs_id","device","permissions",
                 "uid","gid","size","create_time","access_time","mod_time","metadata_change_time",
                 "user_flags","links","disk_offset","entropy","file_content_status","extensions","file_type"])
 

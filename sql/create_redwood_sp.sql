@@ -6,7 +6,7 @@ CREATE PROCEDURE map_staging_table(IN source_id INT, IN os_id INT)
     BEGIN
         INSERT INTO `unique_file` (hash)
                 SELECT DISTINCT contents_hash
-                FROM `staging_table` where dirname != "/" and LENGTH(contents_hash) > 0
+                FROM `staging_table` where basename != "/" and LENGTH(contents_hash) > 0
         ON DUPLICATE KEY UPDATE hash = hash;
         INSERT IGNORE INTO `unique_path` (full_path, path_hash)
                 SELECT dirname, dirname_hash
