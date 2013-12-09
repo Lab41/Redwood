@@ -33,7 +33,16 @@ from redwood.foundation.prevalence import PrevalenceAnalyzer
 
 SourceInfo = namedtuple('SourceInfo', 'source_id source_name os_id os_name')
 
-def import_filters(path):
+
+def get_filter_by_name(filter_name):
+
+    for f in filter_list:
+        if f.name == "filter_name":
+            return f
+
+    return None
+
+def import_filters(path, cnx):
     """
     Imports filters from an external directory at runtime. Imported filters will be added
     to the global filter_list
@@ -71,6 +80,7 @@ def import_filters(path):
             if inspect.isclass(cls) and issubclass(cls, RedwoodFilter) and name != "RedwoodFilter":
                 instance = cls()
                 #append an instance of the class to the filter_list
+                instance.cnx = cnx
                 filter_list.append(instance)
                 new_filters.append(instance)
 

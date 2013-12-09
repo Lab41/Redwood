@@ -25,11 +25,7 @@ class SessionController:
         print "...running with {} cores".format(multiprocessing.cpu_count())
         
         print "...loading filters from ./Filters directory if exists"
-        core.import_filters("./Filters")
-
-        #set the connection in each filter
-        for f in filter_list:
-            f.cnx = self.cnx
+        core.import_filters("./Filters", self.cnx)
 
         while True:
             mode = self.mode_stack[len(self.mode_stack) - 1] 

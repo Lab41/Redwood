@@ -5,10 +5,10 @@
 ![Redwood](https://raw.github.com/Lab41/Redwood/master/images/logo/redwood_logo.png "Redwood")
 
 
-<b>Redwood is a Python framework used to analyze file metadata in order to identify anomalous files</b>. The framework provides a plugin architecture where the developer writes a "Filter" which contributes to an overall reputation score for a given file. Filters can be easily swapped in and out of Redwood and combined with other Filters to collectively score a given file.  The framework includes the data model expressed through MySQL tables, an API for manipulating data and fitlers, a sample shell that leverages the API for exploring data, and two example Filters (a "prevalence" Filter and a "locality uniqueness" Filter. 
+<b>Redwood is a Python framework intended to identify anomalous files through analyzing the file metadata of a collection of media</b>. Each file analyzed is assigned a score that signals its reputation relative to other files in the system --the lower a reputation score, the more likely that a file is anomalous.  The final reputation score of a given file is based on an aggegation of scores assigned to it by modules that we call "Filters".   A Filter is a plugin whose functionality is only limited by the creativity of the developer.  Redwood can support any number of Filters, so long as a Filter extends the RedwoodFilter class and produces a table assigning a reputation score to each unique file in the system.  Much of the Redwood framework is aimed at making the process of adding new Filters to the system as frictionless as possible (see the Filter section below for more information).   Redwood also provides an effective data model for analyzing and storing file metadata, an API for interacting with that data, a simple shell for executing Redwood commands, and two example Filters (a "prevalence" Filter and a "locality uniqueness" Filter.  Though sample Filters are included in the project, ultimately the effectiveness of Redwood will be based on the Filters that you write for the particular anomaly that you are looking for. To that end, Redwood is nothing more than a simple framework for connecting Filters to a well-formed data model.   
 
 ##Quick Setup
-The instructions that follow should get you up an running quickly.  Redwood has been tested on  OS X and Linux. Windows will likely work with a few changes.
+The instructions that follow should get you up and running quickly.  Redwood has been tested on  OS X and Linux. Windows will likely work with a few changes.
 
 #### Stuff to Download
 1. Python 2.7
@@ -27,6 +27,8 @@ mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_re
 
 #### Create a config
 
+Create a file containing the following configuration information specific to your database
+
 ```
 [mysqld]
 database:your_db_name
@@ -37,14 +39,25 @@ password:your_password
 
 ## Run Redwood
 
+There are two ways that you can run Redwood.  If you just want to play with the tool, and maybe create a couple of filters, the "Redwood Shell" method is probably the best choice.  If you want to make modifications to the core package and or create your own UI, then you probably want to use the API.  Examples of how to do both are below:
+
+### Using the Redwood Shell
+
+```bash
+#append to the python path the Redwood directory
+export PYTHONPATH=/path/to/Redwood
+#from the Redwood directory run
+python bin/redwood /path/to/config
+```
+
 #### Using the API to create your Application
 <i>This is a brief example of how to use the API to load a media source into the database and then run specific filter functions on that source</i>
 
 ```python
 import redwood.connection.connect as connect
-from redwood.filters.locality_uniqueness import LocalityUniqueness
-from redwood.filters.filter_prevalence import FilterPrevalence
 import redwood.io.csv_importer as loader
+import redwood.helpers.core as core
+from redwood.filters import filter_list
 
 #connect to the database
 cnx = connect.connect_with_config("my_db.cfg")
@@ -52,9 +65,11 @@ cnx = connect.connect_with_config("my_db.cfg")
 #load a csv to the database
 loader.run(cnx,"directory_containing_csv_data_pulls")
 
-#create two filter instances
-lu = LocalityUniqueness(cnx)
-fp = FilterPrevalence(cnx)
+core.import_filters("./Filters", cnx)
+
+#grab instances of two specific filters
+fp = core.get_filter_by_name("prevalence")
+lu = core.get_filter_by_name("locality_uniqueness")
 
 #generate a histogram to see distribution of files for that source
 fp.discover_histogram_by_source("some_source")
@@ -63,15 +78,6 @@ fp.discover_histogram_by_source("some_source")
 fp.run_survey("some_source")
 ```
 
-
-### Using the Sample Shell
-
-```bash
-#append to the python path the Redwood directory
-export PYTHONPATH=/path/to/Redwood
-#from the Redwood directory run
-python bin/redwood /path/to/config
-```
 
 ##Documentation
 from the root project directory, run the following
