@@ -194,6 +194,7 @@ def table_exists(cnx, name):
         result = cursor.fetchone()
         cursor.close()
     except Exception as err:
+        print err
         pass
 
    
@@ -202,4 +203,50 @@ def table_exists(cnx, name):
     else: 
         return True
 
-
+def get_sources(cnx):
+    """
+    Returns a list of all sources currently loaded into Redwood
+    
+    :param cnx: mysql connection instance
+    """
+    
+    cursor = cnx.cursor()
+    result = list()
+    try:
+        cursor.execute("""SELECT media_source.name, date_acquired, os.name FROM media_source
+        INNER JOIN os
+        ON media_source.os_id = os.id
+        """)
+        result = cursor.fetchall()
+        cursor.close()
+    except Exception as err:
+        print err
+        return None
+        
+    return result
+    
+def get_repuation_by_source(cnx, source_name):
+    """
+    Returns a list of scores for every file on the source
+    
+    :param cnx: myqsl connection instance
+    """
+    
+    cursor = cnx.cursor()
+    result = list()
+    try:
+        cursor.execute("""SELECT ROUND(unique_file.reputation, 2), COUNT(DISTINCT unique_file.id) FROM unique_file
+        INNER JOIN file_metadata
+        ON unique_file.id = file_metadata.unique_file_id
+        INNER JOIN media_source
+        ON file_metadata.source_id = media_source.id
+        WHERE media_source.name = '{}'
+        GROUP BY ROUND(unique_file.reputation, 2)
+        """.format(source_name))
+        result = cursor.fetchall()
+        cursor.close()
+    except Exception as err:
+        print err
+        return None
+        
+    return result

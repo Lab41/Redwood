@@ -23,6 +23,7 @@ Created on 19 October 2013
 
 import sys
 import os
+import shutil
 import getopt
 import string
 import time
@@ -32,6 +33,7 @@ from redwood.helpers.core import SourceInfo
 from redwood.foundation.prevalence import PrevalenceAnalyzer
 from redwood.filters import filter_list
 import redwood.helpers.core as core
+from redwood.foundation.report import Report
 
 def db_load_file(connection, path):
     """
@@ -220,4 +222,15 @@ def run(cnx, path):
 
     #update the analyzers and filters
     core.update_analyzers_and_filters(cnx,src_os_list)
-
+    report_dir = "reports"
+    rpt = Report(cnx)
+    
+    for f in filter_list:
+        for src in src_os_list:
+            path = f.run_survey(src[1])
+            print "PATH: " + path
+            shutil.rmtree(report_dir + "/" + src[1] + "/filters/" + f.name)
+            shutil.move(path, report_dir + "/" + src[1] + "/filters/" + f.name)
+            
+            print "NEW PATH: " + report_dir + "/" + src[1] + "/filters/" + f.name
+            rpt.generate_report(src)

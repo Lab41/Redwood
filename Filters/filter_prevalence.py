@@ -35,7 +35,7 @@ class FilterPrevalence(RedwoodFilter):
     """
 
     def __init__(self, cnx=None):
-        self.name = "prevalence"
+        self.name = "Prevalence"
         self.score_table = "fp_scores"
         self.cnx = cnx         
 
@@ -230,6 +230,10 @@ class FilterPrevalence(RedwoodFilter):
         cursor.execute(query)
 
         data = cursor.fetchall()
+        
+        if data == None:
+            return
+        
         counts, ranges = zip(*data)
         
         fig = plt.figure()
@@ -325,11 +329,7 @@ class FilterPrevalence(RedwoodFilter):
         with open(html_file, 'w') as f:
             f.write("""
             <html>
-            <style type="text/css">
-                .redwood-header{{
-                    background-color:orange;
-                }}
-            </style>
+            <link href="../../../resources/css/style.css" rel="stylesheet" type="text/css">
             <h2>Filter Prevalence Snapshot</h2>
             <body>
                 <h3 class="redwood-header">Histogram for {}</h3>
@@ -343,16 +343,32 @@ class FilterPrevalence(RedwoodFilter):
                         ))
   
             f.write("<h3 class=\"redwood-header\">The lowest 100 reputations for this filter</h3>")
-            f.write("<table border=\"1\">")
-            f.write("<tr><th>Score</th><th>Parent Path</th><th>Filename</th></tr>")
+            f.write("<table border=\"1\" id=\"rounded-corner\">")
+            f.write("<thead><tr><th class=\"rounded-head-left\">Score</th><th>Parent Path</th><th class=\"rounded-head-right\">Filename</th></tr></thead><tbody>")
+            i = 0
+            lr = len(results)
             for r in results:
-                f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+                if i == lr - 1:
+                    f.write("</tbody><tfoot>")
+                    f.write("<tr><td class=\"rounded-foot-left\">{}</td><td>{}</td><td class=\"rounded-foot-right\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
+                else:
+                    f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+                i += 1
             f.write("</table>") 
 
             f.write("<h3 class=\"redwood-header\">Those top 100 anomalous files</h3>")
-            f.write("<table border=\"1\">")
-            f.write("<tr><th>Anomaly Value</th><th>Parent Path</th><th>Filename</th></tr>")
+            f.write("<table border=\"1\" id=\"rounded-corner\">")
+            f.write("<thead><tr><th class=\"rounded-head-left\">Anomaly Value</th><th>Parent Path</th><th class=\"rounded-head-right\">Filename</th></tr></thead><tbody>")
+            i = 0
+            lr = len(anomalies)
             for r in anomalies:
-                f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+                if i == lr - 1:
+                    f.write("</tbody><tfoot>")
+                    f.write("<tr><td class=\"rounded-foot-left\">{}</td><td>{}</td><td class=\"rounded-foot-right\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
+                else:
+                    f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+                i += 1
+            #for r in anomalies:
+            #    f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
             f.write("</table>") 
         return survey_dir
