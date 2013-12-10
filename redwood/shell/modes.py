@@ -125,6 +125,8 @@ class FilterMode(GeneralMode):
             print "Error: Filter Id required"
             return
         v = GeneralMode.validateFilterId(args[0])
+        if v<0:
+            return
         plugin = filter_list[v]
         plugin.rebuild()
         print "completing analysis of data using filter \"{}\"".format(plugin.name)
