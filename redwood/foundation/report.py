@@ -35,12 +35,13 @@ class Report():
 
     #collects survey reports from each filter and aggregates the results into one central report
     def run_filter_survey(self, source_name=None):
+        print "Generating Report"
         if source_name == None:        
             return
-        
         for f in filter_list:
             f.cnx = self.cnx
             path = f.run_survey(source_name)
+            print path
             try:
                 shutil.rmtree(self.report_dir + "/" + source_name + "/filters/" + f.name)
             except:
@@ -52,7 +53,7 @@ class Report():
         report_file = source.source_name + "_report.html"
         html_file = os.path.join(report_dir, report_file)
 
-        score_counts = core.get_repuation_by_source(self.cnx, source[0])            
+        score_counts = core.get_repuation_by_source(self.cnx, source.source_name)
         table_height = int(math.ceil(len(score_counts) / float(3)))
         file_count = 0
         for s in score_counts:
@@ -68,17 +69,20 @@ class Report():
             <div id="navigation">
                 <image class="center" src="../resources/images/redwood_logo.png" height="25%"/>
                 <dl class="list">""")
-                    #<dt><a href="">Navigation item 1</a></dt>
-                    #<dt><a href="">Navigation item 2</a></dt>
-                    #<dt><a href="">Navigation item 3</a></dt>
-                    #<dt><a href="">Navigation item 4</a></dt>
+            for d in os.listdir(report_dir + "/filters"):
+                if os.path.isdir(os.path.join(report_dir + "/filters", d)) and d[0] != '.':
+                    filter_survey = os.path.join("filters/" + d, "survey.html")
+                    f.write("""
+                <div class="list">
+                    <dt><a class="button" href=\"{}\">{}</a></dt>
+                </div>""".format(filter_survey, d))
             f.write("""
                 </dl>
             </div>
             <div id="top">
                 <h2 class="redwood-title">Report for {}</h2>\n""".format(source.source_name))
             f.write("\t\t<h3 class=\"redwood-header\">Source Information</h3>\n")
-            f.write("\t\t<dl>\n")
+            f.write("\t\t<dl style=\"text-indent: 5px;\">\n")
             f.write("\t\t\t<dt>Acquisition Date: {}</dt>\n".format(source.date_acquired))
             f.write("\t\t\t<dt>Operating System: {}</dt>\n".format(source.os_name))
             f.write("\t\t\t<dt>File Count: {}</dt>\n".format(file_count))
@@ -95,7 +99,7 @@ class Report():
                     <th scope="col" class="score-divider">Score</th>
                     <th scope="col" class="count-divider">Count</th>
                     <th scope="col" class="score-divider">Score</th>
-                    <th scope="col" class="rounded-head-right">Count</th>
+                    <th scope="col" class="rounded-head-right-light">Count</th>
                 </tr>
             </thead>
             <tbody>""")
@@ -111,44 +115,93 @@ class Report():
                     <td class="score-divider">{}</td>
                     <td class="count-divider">{}</td>
                     <td class="score-divider"></td>
-                    <td class="rounded-foot-right"></td>
+                    <td class="rounded-foot-right-light"></td>
                 </tr>
             </tfoot>""".format(score_counts[i][0], score_counts[i][1], \
                 score_counts[table_height + i][0], score_counts[table_height + i][1]))
                     else:
                         f.write("""
-                        <tr>
-                            <td class="score-divider">{}</td>
-                            <td class="count-divider">{}</td>
-                            <td class="score-divider">{}</td>
-                            <td class="count-divider">{}</td>
-                            <td class="score-divider"></td>
-                            <td></td>
-                        </tr>""".format(score_counts[i][0], score_counts[i][1], \
+                <tr>
+                    <td class="score-divider">{}</td>
+                    <td class="count-divider">{}</td>
+                    <td class="score-divider">{}</td>
+                    <td class="count-divider">{}</td>
+                    <td class="score-divider"></td>
+                    <td></td>
+                </tr>""".format(score_counts[i][0], score_counts[i][1], \
                         score_counts[table_height + i][0], score_counts[table_height + i][1]))
                 else:
                     f.write("""
-                        <tr>
-                            <td class="score-divider">{}</td>
-                            <td class=count-divider>{}</td>
-                            <td class="score-divider">{}</td>
-                            <td class=count-divider>{}</td>
-                            <td class="score-divider">{}</td>
-                            <td>{}</td>
-                        </tr>""".format(score_counts[i][0], score_counts[i][1], \
+                <tr>
+                    <td class="score-divider">{}</td>
+                    <td class=count-divider>{}</td>
+                    <td class="score-divider">{}</td>
+                    <td class=count-divider>{}</td>
+                    <td class="score-divider">{}</td>
+                    <td>{}</td>
+                </tr>""".format(score_counts[i][0], score_counts[i][1], \
                     score_counts[table_height + i][0], score_counts[table_height + i][1], \
                     score_counts[table_height * 2 + i][0], score_counts[table_height * 2 + i][1]))
             f.write("""
             </table>
             </div>
             """)
-            filter_survey = ""
-            #for d in os.listdir(report_dir + "/filters"):
-            #    if os.path.isdir(os.path.join(report_dir + "/filters", d)) and d[0] != '.':
-            #        filter_survey = os.path.join("filters/" + d, "survey.html")
-            #        f.write("""
-            #        <iframe src=\"{}\" width=\"100%\" height=\"100%\"></iframe>
-            #            """.format(filter_survey))
-
+            #This is what the query should look like in production
+            cursor = self.cnx.cursor()
+            #cursor.execute("""
+            #    SELECT file_metadata.file_name AS Filename,
+            #    unique_file.reputation AS Reputation,
+            #    unique_path.full_path As Path,
+            #    unique_file.hash AS Hash
+            #    FROM file_metadata
+            #    INNER JOIN unique_file
+            #    ON file_metadata.unique_file_id = unique_file.id
+            #    INNER JOIN unique_path
+            #    ON file_metadata.unique_path_id = unique_path.id
+            #    WHERE source_id = {}
+            #    ORDER BY unique_file.reputation ASC
+            #    LIMIT 0, 100
+            #    """.format(source.os_id))
+            #Use this query if unique_file.reputation is no indexed
+            cursor.execute("""
+                SELECT file_metadata.file_name AS Filename,
+                unique_file.reputation AS Reputation,
+                unique_path.full_path As Path,
+                unique_file.hash AS Hash
+                FROM file_metadata
+                INNER JOIN unique_file
+                ON file_metadata.unique_file_id = unique_file.id
+                INNER JOIN unique_path
+                ON file_metadata.unique_path_id = unique_path.id
+                WHERE source_id = {}
+                ORDER BY unique_file.reputation ASC
+                LIMIT 0, 100
+                """.format(source.os_id))
+            col_length = len(cursor.description)
+            field_names = cursor.description
+            results = cursor.fetchall()
+            f.write("\t\t<div id=\"content\">\n")
+            f.write("\t\t<table border=\"1\" id=\"redwood-table\">\n")
+            f.write("\t\t\t<caption class=\"caption\">Lowest Reputation Files (100)</caption>\n")
+            f.write("""
+            <thead>
+                <tr>""")
+            for i in range(0, col_length):
+                if i == 0:
+                    f.write("<th scope=\"col\" class=\"rounded-head-left\">{}</th>".format(field_names[i][0]))
+                elif i == col_length - 1:
+                    f.write("<th class=\"rounded-head-right\">{}</td>".format(field_names[i][0]))
+                else:
+                    f.write("<th>{}</th>".format(field_names[i][0]))
+            f.write("""
+                </tr>
+            </thead>
+            <tbody>""")
+            for row in results:
+                f.write("<tr>")
+                for l in row:
+                    f.write("<td>{}</td>".format(l))
+                f.write("</tr>")
+            f.write("</tbody></table></div>")
             f.write("</body></html>")
             f.close()

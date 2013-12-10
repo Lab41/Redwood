@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS unique_path (
     full_path VARCHAR(4096) NOT NULL,
     path_hash CHAR(40) NULL,
     PRIMARY KEY (id),
+	INDEX file_reputation (reputation ASC),
     UNIQUE INDEX path_hash_UNIQUE (path_hash ASC)
 )  ENGINE=InnoDB;
 

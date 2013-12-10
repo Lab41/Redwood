@@ -1,0 +1,144 @@
+.redwood-title
+{
+	font-size: 40px;
+	text-indent: 5px;
+}
+.redwood-header
+{
+	background-color: orange;
+	text-indent: 5px;
+}
+
+#redwood-table
+{
+	font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+	font-size: 12px;
+	margin: 15px;
+	width: 480px;
+	text-align: left;
+	border-collapse: collapse;
+	border-style: hidden;
+}
+#redwood-table caption.caption
+{
+	text-align: left;
+	font-size: 25px;
+	font-style: bold;
+}
+#redwood-table thead th.rounded-head-left
+{
+	background: orange url('../images/top_left.png') left -1px no-repeat;
+}
+#redwood-table thead th.rounded-head-left-light
+{
+	background: #FFE0B2 url('../images/top_left_light.png') left -1px no-repeat;
+}
+#redwood-table thead th.rounded-head-right
+{
+	background: orange url('../images/top_right.png') right -1px no-repeat;
+}
+#redwood-table thead th.rounded-head-right-light
+{
+	background: #FFE0B2 url('../images/top_right_light.png') right -1px no-repeat;
+}
+#redwood-table th
+{
+	padding: 8px;
+	font-weight: normal;
+	font-size: 13px;
+	color: black;
+	background: orange;
+}
+#redwood-table th.score-divider
+{
+	background: orange
+}
+#redwood-table th.count-divider
+{
+	/*border-right: 2px solid;*/
+	background: #FFE0B2;
+}
+#redwood-table td
+{
+	padding: 8px;
+	background: #FFE0B2;
+	border-top: 1px solid #fff;
+	color: black;
+}
+#redwood-table td.score-divider
+{
+	background: orange;
+}
+#redwood-table td.count-divider
+{
+	/*border-right: 2px solid;*/
+}
+#redwood-table tfoot td.rounded-foot-left
+{
+	background: orange url('../images/bot_left.png') left bottom no-repeat;
+}
+#redwood-table tfoot td.rounded-foot-left-light
+{
+	background: #FFE0B2 url('../images/bot_left_light.png') left bottom no-repeat;
+}
+#redwood-table tfoot td.rounded-foot-right
+{
+	background: orange url('../images/bot_right.png') right bottom no-repeat;
+}
+#redwood-table tfoot td.rounded-foot-right-light
+{
+	background: #FFE0B2 url('../images/bot_right_light.png') right bottom no-repeat;
+}
+#redwood-table tbody tr:hover td
+{
+	background: #FFC266;
+}
+div#top
+{
+	margin-left: 225px
+}
+div#navigation
+{
+	display: block;
+	position: fixed;
+	width: 200px;
+	height: 97.9%;
+	top: 15%
+	right: auto;
+	bottom: 100px
+	left: 0;
+	color: #ffffff;
+	background-color: #FFE0B2;
+	background-image: url('../images/top_left_light.png'), url('../images/top_right_light.png'), url('../images/bot_right_light.png'), url('../images/bot_left_light.png');
+	background-position: left top, right top, right bottom, left bottom;
+	background-repeat: no-repeat;
+	padding: 5px;
+}
+div#content
+{
+	margin-left: 210px;
+}
+div#navigation .center
+{
+	width: 150px;
+	height: 150px;
+	display: block;
+    margin-left: auto; 
+    margin-right: auto;
+}
+dl.list
+{
+	text-align: center;
+}
+.button
+{
+  	display: inline-block;
+  	width: 150px;
+  	height: 25px;
+  	background: orange;
+  	padding: 10px;
+  	border-radius: 5px;
+  	color: black;
+  	font-weight: bold;
+  	margin-bottom: 5px;
+}
