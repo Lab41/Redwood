@@ -165,6 +165,12 @@ class FilterMode(GeneralMode):
         print "\t|-[count]      - items to display"
         print "\t|-[source]     - source name"
         print "\t|-[out]        - file to write output to"
+        print "[*] aggregate_scores (optional)<filter:weight>"
+        print "\t|- aggregates the reputations of all files using the list of filters and weights provided"
+        print "\t|- if no list is provided all filters are weighted equally"
+        print "\t|-[filter:weight]  - optional list of filter IDs and weights"
+        print "\t|- weights are a percentage and can range from 0-1 or 0-100"
+        
 class StandardMode(GeneralMode):
     def __init__(self, cnx, controller):
         super(StandardMode, self).__init__(cnx, controller)

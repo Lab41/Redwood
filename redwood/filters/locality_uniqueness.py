@@ -435,20 +435,26 @@ class LocalityUniqueness(RedwoodFilter):
             f.write("""
             <html>
             <head>
-            <style type="text/css">
-                .redwood-header{
-                    background-color:orange;
-                }
-            </style>
+            <link href="../../../resources/css/style.css" rel="stylesheet" type="text/css">
             </head>
             <body>
             <h2>Locality Uniqueness Snapshot</h2> 
             """)
             f.write("<h3 class=\"redwood-header\">The lowest 100 reputations for this filter</h3>")
-            f.write("<table border=\"1\">")
-            f.write("<tr><th>Score</th><th>Parent Path</th><th>Filename</th></tr>")
+            f.write("<table border=\"1\" id=\"rounded-corner\">")
+            f.write("<thead>")
+            f.write("<tr><th class=\"rounded-head-left\">Score</th><th>Parent Path</th><th class=\"rounded-head-right\">Filename</th></tr>")
+            f.write("</thead><tbody>")
+            i = 0
+            lr = len(results)
             for r in results:
-                f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+                if i == lr - 1:
+                    f.write("</tbody><tfoot>")
+                    f.write("<tr><td class=\"rounded-foot-left\">{}</td><td>{}</td><td class=\"rounded-foot-right\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
+                else:
+                    f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
+                i += 1
             f.write("</table>") 
             
             f.write("</body></html>")
+            return survey_dir
