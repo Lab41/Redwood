@@ -1,28 +1,35 @@
 #Association-Based Data Reduction (REDWOOD)
 
-This project implements statistical methods to assist in identifying anomalous files from a larger data set.  
+<i>Finding the Tree in the Forest</i>
+
+![Redwood](https://raw.github.com/Lab41/Redwood/master/images/logo/redwood_logo.png "Redwood")
+
+
+<p><b>Redwood is a Python framework intended to identify anomalous files through analyzing the file metadata of a collection of media</b>. Each file analyzed is assigned a score that signals its reputation relative to other files in the system --the lower a reputation score, the more likely that a file is anomalous.  The final reputation score of a given file is based on an aggegation of scores assigned to it by modules that we call "Filters".</p>
+<p>A Filter is a plugin whose functionality is only limited by the creativity of the developer.  Redwood can support any number of Filters, so long as a Filter extends the RedwoodFilter class and produces a table assigning a reputation score to each unique file in the system.  Much of the Redwood framework is aimed at making the process of adding new Filters to the system as frictionless as possible (see the Filter section below for more information).</p>   
+<p>In addition to the Filters, Redwood also provides an effective data model for analyzing and storing file metadata, an API for interacting with that data, a simple shell for executing Redwood commands, and two example Filters (a "prevalence" Filter and a "locality uniqueness" Filter.  Though sample Filters are included in the project, ultimately the effectiveness of Redwood will be based on the Filters that you write for the particular anomaly that you are looking for. To that end, Redwood is nothing more than a simple framework for connecting Filters to a well-formed data model.</p> 
 
 ##Quick Setup
-The instructions that follow should get you up an running quickly.  Currently Redwood is setup to run on OS X and Linux, though Windows may work too, though it hasn't been tested.
+The instructions that follow should get you up and running quickly.  Redwood has been tested on  OS X and Linux. Windows will likely work with a few changes.
 
 #### Stuff to Download
 1. Python 2.7
-2. Various Python packages
-  * SciPy
-  * MatPlotLib
-  * MySQLdb
+2. Python packages
+  * SciPy (Matplotlib, MqSQLdb)
 3. MySQL Client for your client OS
 4. MySQL Server for the server hosting the DB
 
 #### Prep the Database
 Redwood uses a MySQL database to store metadata. In order to use Redwood, you will need to first set up your own MySQL DB, then run the following two SQL scripts to create the required tables and subroutines.
 
-```
+```bash
 mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_redwood_db.sql
 mysql -uyour_db_user -pyour_password -hyour_host -Dyour_database < sql/create_redwood_sp.sql
 ```
 
 #### Create a config
+
+Create a file containing the following configuration information specific to your database
 
 ```
 [mysqld]
@@ -34,27 +41,49 @@ password:your_password
 
 ## Run Redwood
 
-#### Using PIP or Souce
+There are two ways that you can run Redwood.  If you just want to play with the tool, and maybe create a couple of filters, the "Redwood Shell" method is probably the best choice.  If you want to make modifications to the core package and or create your own UI, then you probably want to use the API.  Examples of how to do both are below:
 
+#### Using the Redwood Shell
 
-
-### Using the Sample Shell
-
-```
+```bash
 #append to the python path the Redwood directory
 export PYTHONPATH=/path/to/Redwood
 #from the Redwood directory run
-python sample_shell/run.py /path/to/config
+python bin/redwood /path/to/config
 ```
+
+#### Using the API to create your Application
+<i>This is a brief example of how to use the API to load a media source into the database and then run specific filter functions on that source</i>
+
+```python
+import redwood.connection.connect as connect
+import redwood.io.csv_importer as loader
+import redwood.helpers.core as core
+
+#connect to the database
+cnx = connect.connect_with_config("my_db.cfg")
+
+#load a csv to the database
+loader.run(cnx,"directory_containing_csv_data_pulls")
+
+core.import_filters("./Filters", cnx)
+
+#grab instances of two specific filters
+fp = core.get_filter_by_name("prevalence")
+lu = core.get_filter_by_name("locality_uniqueness")
+
+#generate a histogram to see distribution of files for that source
+fp.discover_histogram_by_source("some_source")
+
+#run a survey for a particular source
+fp.run_survey("some_source")
+```
+
 
 ##Documentation
 from the root project directory, run the following
-```
-sphinx-apidoc -o docs redwood -F
-pushd docs
-make html
-make man
-popd
+```bash
+sphinx-apidoc -o docs redwood -F; pushd docs; make html; make man; popd
 ```
 
 ###Data
@@ -111,7 +140,7 @@ Redwood is composed of 5 core engines, all backed by a MySQL DB
 
 Redwood uses a series of filters that run statistical methods on the data. All filters are plugins into the Redwood architecture.  A filter must be added to the global __plugins__ list in order for Redwood to recognize this.  To add it to the list, you can either save it to a directory "Filters" in the current directory, save it to redwood/filters, or finally use the API to add it programatically.  These filters are the core of how Redwood assigns scores to individual files. To add a filter to Redwood, extend the RedwoodFilter class in redwood/filters/redwood_filter.py as shown below: 
 
-```
+```python
 class YourFilterName(RedwoodFilter)
 
     def __init__(self):
@@ -131,11 +160,28 @@ class YourFilterName(RedwoodFilter)
     def discover_your discover_funcM(self, arg0, ..., argN):
         your code
 
+    #survey function
+    def run_survey(source):
+        your code
 ```
 
 Notes about filter creation
 *  The update function must produce (or update if not exists) a table called self.score_table with two columns (id, score) where the id is the unique_file.id of the the given file and the score is the calculated score
 *  The self.cnx instance variable must be set prior to running any of the functions of the filter. The self.cnx is a mysql connection object
+
+##Screen Shots 
+<i>Sceenshot of the Sample Shell</i><br>
+![Shell](https://raw.github.com/Lab41/Redwood/master/images/redwood_0.png "Redwood Shell")
+<br><i>Sceenshot of the Filter Options</i><br>
+![Shell](https://raw.github.com/Lab41/Redwood/master/images/discovery.png "Filter Options")
+<br><i>Sceenshot of the File Distribution discovery function for Filter Prevalence</i><br>
+![Shell](https://raw.github.com/Lab41/Redwood/master/images/histogram0.png "Prevalence Filter file distribution")
+<br><i>Sceenshot of the discovery function for Locality Uniqueness</i><br>
+![Clustering](https://raw.github.com/Lab41/Redwood/master/images/clustering.png "Locality Uniquenss Clustering")
+
+
+
+
 
 ##Optimizing MySQL Notes
 bulk_insert_buffer_size: 8G

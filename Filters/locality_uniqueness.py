@@ -45,6 +45,7 @@ warnings.filterwarnings('ignore')
 #can run them in parallel using the apply_async function for thread pools
 
 SMALL_CLUSTERS_SCORE = .3
+DEFAULT_NUM_CLUSTERS = 3
 
 def find_anomalies(rows, sorted_results, code_count_dict):
     """
@@ -99,55 +100,54 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
     :return: nothing... use the rows input as an output to append to
     """
     
-    srt = time.time()
     num_obs = len(files)
-   
+  
+    #if the number of observations is less than the num_clusters we do not cluster
+    #but rather give each file SMALL CULSTER SCORE
     if(num_obs < num_clusters):
         for f in files:
-            rows.put((f[0], .5))
+            rows.put((f[0], SMALL_CLUSTERS_SCORE))
         return
  
-    #zero out the array that will contain the inodes
+    #zero out the two dimensional array
     observations = np.zeros((num_obs, num_features))
 
     i = 0
-    
+   
+    #transfer the observations to the numpy array
     for file_metadata_id,mod_date,full_path,file_name,inode,parent_id, in files:
         seconds = calendar.timegm(mod_date.utctimetuple())
-        observations[i][0] = inode
-        observations[i][1] = seconds
+        observations[i] = (inode, seconds)
         i += 1
-    
+   
+    #normalize the observations
     whitened = whiten(observations) 
 
-    #get the centroids
+    #get the centroids (aka codebook)
     codebook,_ = kmeans(whitened, num_clusters)
    
     #sometimes if all observations for a given feature are the same
-    #the centroids will not be found.  For now, just throw out that data, but
-    #figure out a solution later
+    #the centroids will not be found. In that case we give a neutral score
     if len(codebook) != num_clusters:
         for f in files:
             rows.put((f[0], .5)) 
         return
 
+    #calulate the distances
     code, dist = vq(whitened, codebook)
+    
+    
     d = defaultdict(int)
 
     #quick way to get count of cluster sizes        
     for c in code:
         d[c] += 1
 
-
-    #sorted the map codes to get the smallest to largest cluster (currently not used)
-    sorted_codes = sorted(d.iteritems(), key = operator.itemgetter(1))
-    
+    #combine the results with the original data, then sort by the code
     combined = zip(code, dist, files)
     sorted_results =  sorted(combined, key=lambda tup: tup[0])
-    
+   
     find_anomalies(rows, sorted_results, d) 
-    elp = time.time() - srt
-    #print "completed pid {} time: {}".format(os.getpid(), elp)
              
 
 
@@ -164,6 +164,7 @@ class LocalityUniqueness(RedwoodFilter):
         self.score_table = "lu_scores"
         self.name = "Locality_Uniqueness"
         self.cnx = cnx
+    
     def usage(self):
         """
         Prints the usage statements for the discovery functions
@@ -184,10 +185,9 @@ class LocalityUniqueness(RedwoodFilter):
         """
         print "[+] Locality Uniqueness Filter running on {}".format(source)
         self.build()
-        self.evaluate_source(source, 3)
+        self.evaluate_source(source)
 
-
-    def evaluate_source(self, source_name, num_clusters=3):
+    def evaluate_source(self, source_name, num_clusters=DEFAULT_NUM_CLUSTERS):
         """
         Evaluates and scores a given source with a specified number of clusters for kmeans. Currently
         this function uses two set features as inputs (modification time and inode number), however
@@ -325,7 +325,7 @@ class LocalityUniqueness(RedwoodFilter):
     #
     ##################################################
 
-    def discover_evaluate_dir(self, dir_name, source, num_clusters=3):
+    def discover_evaluate_dir(self, dir_name, source, num_clusters=DEFAULT_NUM_CLUSTERS):
         """
         Discovery function that applies kmeans clustering to a specified directory, displays
         the resulting scatter plot with the clusters, and then prints out an ordered list of 
@@ -349,14 +349,19 @@ class LocalityUniqueness(RedwoodFilter):
         
         src_info = core.get_source_info(self.cnx, source)
         if src_info is None:
-            return [None, None]
+            print "Error: Source {} does not exist".format(source)
+            return
+
+        
 
         #grab all files for a particular directory from a specific source
         hash_val = sha1(dir_name).hexdigest()
         
-        query = ("""SELECT file_name, file_metadata_id, filesystem_id, last_modified
-        FROM joined_file_metadata
-        WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'""").format(src_info.source_id, hash_val)
+        query = """
+            SELECT file_name, file_metadata_id, filesystem_id, last_modified
+            FROM joined_file_metadata
+            WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'
+            """.format(src_info.source_id, hash_val)
 
         cursor.execute(query)
 
@@ -364,7 +369,7 @@ class LocalityUniqueness(RedwoodFilter):
         sql_results = cursor.fetchall()
       
         if(len(sql_results) == 0):
-            return [None, None]
+            return
 
         #zero out the array that will contain the inodes
         filesystem_id_arr = np.zeros((len(sql_results), num_features))
@@ -384,10 +389,10 @@ class LocalityUniqueness(RedwoodFilter):
         for c in code:
             d[c] += 1
       
-        #sorted the map codes to get the smallest to largest cluster
-        sorted_codes = sorted(d.iteritems(), key = operator.itemgetter(1))
         #sorts the codes and sql_results together as pairs
         combined = zip(dist, code, sql_results)
+
+        #sort results by distances from centroid
         sorted_results =  sorted(combined, key=lambda tup: tup[0])
 
         for dist_val, c, r in sorted_results:

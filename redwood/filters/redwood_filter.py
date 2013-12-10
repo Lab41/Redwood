@@ -26,26 +26,28 @@ class RedwoodFilter(object):
     """
     Base class for Filter creation
 
-    :ivar name: Name of the filter
+    :ivar name: Name of the filter. This should be one word, lower case, with underscores if needed
     :ivar cnx: connection instance to the database
     :ivar score_table: name of the table containing reputation scores. The table must have exactly two columns (id, score) 
     """
-    def __init__(self, cnx=None):
+    def __init__(self):
         self.name = "generic"
-        self.cnx = cnx    
+        self.cnx = None    
         self.score_table = None
     def clean(self):
         """
         Deletes all required tables for this filter (method must be overridden)
         """
-        pass
+        raise NotImplementedError
+
     def update(self, source):
         """
         Updates filter tables with new data from <source>  (method must be overridden)
 
         :param source: name of the media source
         """
-        pass
+        raise NotImplementedError
+
     def rebuild(self):
         """
         Deletes all tables for this filter, recreates them, then rebuilds data for them from the datastore
@@ -101,8 +103,40 @@ class RedwoodFilter(object):
             
         cursor.close()
  
-    def run_survey(self, source_id):
-        pass
+ 
+    def build(self):
+        """
+        Builds necessary tables for the filter. This function must create the scores table. The standard practice 
+        is to create a table called "filter_name"_scores that has two columns (id, double score). As an example for a
+        filter called "woohoo", you would want to add the following create table::
+
+            CREATE TABLE IF NOT EXISTS `woohoo_scores` (
+                id BIGINT unsigned NOT NULL,
+                score double DEFAULT NULL,
+                PRIMARY KEY(id),
+                CONSTRAINT `fk_unique_file_woohoo_id` FOREIGN KEY (`id`) 
+                REFERENCES `unique_file` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+                ) ENGINE=InnoDB
+        """
+
+        raise NotImplementedError
+
+    def run_survey(self, source_name):
+        """
+        Given a source name, this function will create an html file summarizing its analysis. The survey should be an
+        html file named "survey.html", and it should be located in a directory called "survey_[your file name]_[source name].
+        The survey directory should also contain a resources directory where html resources such as images will be saved::
+
+            survey_filtername__sourcename
+            |- survey.html
+            |- resources
+
+        :param source_name: name of the source
+
+        :return path to the survey directory
+        """
+        
+        raise NotImplementedError
 
     def run_func(self, func_name, args):
         """

@@ -16,7 +16,6 @@
 
 
 """
-
 Created on 19 October 2013
 @author: Lab41
 """
@@ -42,6 +41,7 @@ def db_load_file(connection, path):
 
     :param connection: connection object for the database
     :param path: path where the file is located
+    
     :return SourceInfo representing the inputted source
     """
     
@@ -145,12 +145,12 @@ def db_load_file(connection, path):
             basename VARCHAR(255) NULL,
             contents_hash CHAR(40) NULL,
             dirname_hash CHAR(40) NULL,
-            filesystem_id MEDIUMTEXT NULL,
+            filesystem_id INT UNSIGNED NULL,
             device_id INT NULL,
             attributes INT NULL,
             user_owner INT NULL,
             group_owner INT NULL,
-            size MEDIUMTEXT NULL,
+            size INT UNSIGNED NULL,
             created DATETIME NULL,
             last_accessed DATETIME NULL,
             last_modified DATETIME NULL,

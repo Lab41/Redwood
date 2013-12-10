@@ -16,15 +16,16 @@
 
 
 """
-The PrevalenceAnalyzer is a core component of Redwood for determining prevalence
-analytics that can then be made available to all filters. 
-
 Created on 19 October 2013
 @author: Lab41
 """
 
 
 class PrevalenceAnalyzer():
+    """
+    The PrevalenceAnalyzer is a core component of Redwood for determining prevalence
+    analytics that can then be made available to all filters. 
+    """
 
     def __init__(self, cnx):
         self.cnx = cnx      
@@ -34,8 +35,7 @@ class PrevalenceAnalyzer():
         Analyzes all sources from the source_os_list, storing results in the global tables
         for prevalence
 
-        :param source_os_list: a list of tuples containing information abou the sources. The tuple
-        contains (source_id, source_name, os_id)
+        :param sources: a list of SourceInfo instances containing information about the sources.
         """
         self.build()
         

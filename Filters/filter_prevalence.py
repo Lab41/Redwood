@@ -21,13 +21,13 @@ Created on 19 October 2013
 @author: Lab41
 """
 
-from redwood.filters.redwood_filter import *
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import redwood.helpers.core as core
 import shutil
 
+from redwood.filters.redwood_filter import RedwoodFilter
 
 class FilterPrevalence(RedwoodFilter):
     """
