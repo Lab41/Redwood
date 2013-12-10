@@ -138,7 +138,9 @@ Redwood is composed of 5 core engines, all backed by a MySQL DB
 
 ##All About Filters
 
-Redwood uses a series of filters that run statistical methods on the data. All filters are plugins into the Redwood architecture.  A filter must be added to the global __plugins__ list in order for Redwood to recognize this.  To add it to the list, you can either save it to a directory "Filters" in the current directory, save it to redwood/filters, or finally use the API to add it programatically.  These filters are the core of how Redwood assigns scores to individual files. To add a filter to Redwood, extend the RedwoodFilter class in redwood/filters/redwood_filter.py as shown below: 
+Filters are the foundation of file scoring in Redwood. A Filter's central purpose is to create a score for each unique file in the system.  After Redwood runs all the filters, each unique file should have a score from each filter.  It is then that Redwood is responsible for combining these scores using an aggregation function such that each unique file has only a single score in the unique file table.  Keep in mind that numerous filters can exist in a Redwood project.<br>
+In addition to generating a score for each file, a Filter can optionally create one or more "Discovery" functions.  A Discovery function is a function that allows the user of the Filter to explore the data beyond just deriving a score. It is common for a Discovery function to also be used in the calculations for file scoring -- the Redwood model just provides a structured way for the developer to make that function available to the end user. Discovery functions should be preceded by "discover_" in their name so that during introspection a developer knows which functions are intended for discovery.<b>
+Currently Redwood includes two native Filters - "locality_uniqueness" and "file_prevalence".  Use these Filters as examples when writing your own.  If you are using the Redwood Shell, any Filter placed 
 
 ```python
 class YourFilterName(RedwoodFilter)

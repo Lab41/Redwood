@@ -180,24 +180,33 @@ class StandardMode(GeneralMode):
     def filter(self, args=None):
         self.controller.pushMode(FilterMode(self.cnx, self.controller))
     def load_csv(self, args=None):
-        if(len(args) != 1):
-            print "Error: path required"
+        if(len(args) != 2):
+            print "Error incorrect number of args "
             return
-        csv_load.run(self.cnx, args[0])
+
+        choice = args[1]
+
+        if args[1] == "yes":
+            choice = True
+        elif args[1] == "no":
+            choice = False
+        else:
+            print "Error: Please specify \"yes\" or \"no\" if you want a survey"
+            return
+
+        csv_load.run(self.cnx, args[0], choice)
     def import_filters(self, args=None):
         if len(args) != 1:
-            print "Error: pat required"
+            print "Error: path required"
             return
         new_filters = core.import_filters(args[0])
         print "New Filters: "
         print new_filters
     def help(self, args = None):
-        print         '\n[*] filter \n' \
-        '\t-- activates FILTER mode \n' \
-        '[*] load_csv <path> \n' \
-        '\t-- loads a redwood csv file from the given path\n' \
-        '[*] import_filters <path>\n' \
-        '\t--loads all filter modules from the specified path'
-
-
-
+        print "[*] filter "
+        print "\t|--activates FILTER mode:"
+        print "[*] load_csv <path> <include-survey>"
+        print "\t|-[path]   - path where csv files exist or a path to a csv file"
+        print "\t|-[survey] - either set as \"yes\" or \"no\" if you want to include the survey" 
+        print "[*] import_filters <path>"
+        print "\t|-[path]   - path to the directory containing the filters"

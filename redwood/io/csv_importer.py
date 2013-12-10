@@ -191,7 +191,7 @@ def db_load_file(connection, path):
     
     return SourceInfo(source_id, source_name, os_id, os_name) 
 
-def run(cnx, path):
+def run(cnx, path, do_survey):
     """
     Loads all csv files from the path into the database
 
@@ -222,16 +222,27 @@ def run(cnx, path):
 
     #update the analyzers and filters
     core.update_analyzers_and_filters(cnx,src_os_list)
-    report_dir = "reports"
-    rpt = Report(cnx)
     
+    if do_survey is True:
+        run_survey(cnx, src_os_list)
+
+
+
+
+def run_survey(cnx, sources):
+    """
+        
+    """
+    rpt = Report(cnx)
+     
     for f in filter_list:
-        for src in src_os_list:
-            path = f.run_survey(src[1])
-            print "PATH: " + path
-            if os.path.isdir(report_dir + "/" + src[1] + "/filters/" + f.name):
-                shutil.rmtree(report_dir + "/" + src[1] + "/filters/" + f.name)
-            shutil.move(path, report_dir + "/" + src[1] + "/filters/" + f.name)
-            
-            print "NEW PATH: " + report_dir + "/" + src[1] + "/filters/" + f.name
+        for src in sources:
+            survey_path = f.run_survey(src.source_name)
+            curr_report_dir = os.path.join("reports", src.source_name, "filters", f.name)
+            try:
+                shutil.rmtree(curr_report_dir)
+            except:
+                pass
+
+            shutil.move(survey_path, curr_report_dir)
             rpt.generate_report(src)
