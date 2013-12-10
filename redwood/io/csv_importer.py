@@ -229,7 +229,8 @@ def run(cnx, path):
         for src in src_os_list:
             path = f.run_survey(src[1])
             print "PATH: " + path
-            shutil.rmtree(report_dir + "/" + src[1] + "/filters/" + f.name)
+            if os.path.isdir(report_dir + "/" + src[1] + "/filters/" + f.name):
+                shutil.rmtree(report_dir + "/" + src[1] + "/filters/" + f.name)
             shutil.move(path, report_dir + "/" + src[1] + "/filters/" + f.name)
             
             print "NEW PATH: " + report_dir + "/" + src[1] + "/filters/" + f.name
