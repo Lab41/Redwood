@@ -103,7 +103,20 @@ class Report():
             </thead>
             <tbody>""")
             for i in range(0, table_height):
-                if table_height * 2 + i >= len(score_counts):
+                if len(score_counts) == 1:
+                    f.write("""
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="rounded-foot-left">{}</td>
+                    <td class="count-divider">{}</td>
+                    <td class="score-divider"></td>
+                    <td class="count-divider"></td>
+                    <td class="score-divider"></td>
+                    <td class="rounded-foot-right-light"></td>
+                </tr>
+            </tfoot>""".format(score_counts[i][0], score_counts[i][1]))
+                elif table_height * 2 + i >= len(score_counts):
                     if i == table_height - 1:
                         f.write("""
             </tbody>
@@ -116,7 +129,7 @@ class Report():
                     <td class="score-divider"></td>
                     <td class="rounded-foot-right-light"></td>
                 </tr>
-            </tfoot>""".format(score_counts[i][0], score_counts[i][1], \
+            </tfoot>""".format(score_counts[i][0], score_counts[i][1],
                 score_counts[table_height + i][0], score_counts[table_height + i][1]))
                     else:
                         f.write("""
@@ -127,7 +140,7 @@ class Report():
                     <td class="count-divider">{}</td>
                     <td class="score-divider"></td>
                     <td></td>
-                </tr>""".format(score_counts[i][0], score_counts[i][1], \
+                </tr>""".format(score_counts[i][0], score_counts[i][1],
                         score_counts[table_height + i][0], score_counts[table_height + i][1]))
                 else:
                     f.write("""
@@ -138,8 +151,8 @@ class Report():
                     <td class=count-divider>{}</td>
                     <td class="score-divider">{}</td>
                     <td>{}</td>
-                </tr>""".format(score_counts[i][0], score_counts[i][1], \
-                    score_counts[table_height + i][0], score_counts[table_height + i][1], \
+                </tr>""".format(score_counts[i][0], score_counts[i][1],
+                    score_counts[table_height + i][0], score_counts[table_height + i][1],
                     score_counts[table_height * 2 + i][0], score_counts[table_height * 2 + i][1]))
             f.write("""
             </table>
