@@ -64,7 +64,7 @@ import redwood.helpers.core as core
 cnx = connect.connect_with_config("my_db.cfg")
 
 #load a csv to the database
-loader.run(cnx,"directory_containing_csv_data_pulls")
+loader.run(cnx,"directory_containing_csv_data_pulls", false)
 
 core.import_filters("./Filters", cnx)
 
@@ -138,9 +138,19 @@ Redwood is composed of 5 core engines, all backed by a MySQL DB
 
 ##All About Filters
 
+####Summary
 Filters are the foundation of file scoring in Redwood. A Filter's central purpose is to create a score for each unique file in the system.  After Redwood runs all the filters, each unique file should have a score from each filter.  It is then that Redwood is responsible for combining these scores using an aggregation function such that each unique file has only a single score in the unique file table.  Keep in mind that numerous filters can exist in a Redwood project.<br>
-In addition to generating a score for each file, a Filter can optionally create one or more "Discovery" functions.  A Discovery function is a function that allows the user of the Filter to explore the data beyond just deriving a score. It is common for a Discovery function to also be used in the calculations for file scoring -- the Redwood model just provides a structured way for the developer to make that function available to the end user. Discovery functions should be preceded by "discover_" in their name so that during introspection a developer knows which functions are intended for discovery.<b>
-Currently Redwood includes two native Filters - "locality_uniqueness" and "file_prevalence".  Use these Filters as examples when writing your own.  If you are using the Redwood Shell, any Filter placed 
+In addition to generating a score for each file, a Filter can optionally create one or more "Discovery" functions.  A Discovery function is a function that allows the user of the Filter to explore the data beyond just deriving a score. It is common for a Discovery function to also be used in the calculations for file scoring -- the Redwood model just provides a structured way for the developer to make that function available to the end user. 
+
+####Writing your own Filter
+Your filter should inherit from the base class RedwoodFilter in redwood.filters.redwood_filter. You must override those functions that raise a "NotImplementedError".  To assist in writing your own filter, look at the sample filters (locality_uniqueness and file_prevalence) in the Filters directory. 
+
+- If you are using the Redwood Shell, any Filter placed in the Filters directory will be automatically imported into the application. 
+- All discovery functions should be preceded by "discover_" in their name so that during introspection a developer knows which functions are intended for discovery
+- A Filter is free to create any tables in the database. This can become necessary for efficiently calculating the reputation scores
+- The update function must produce (or update if not exists) a table called self.score_table with two columns (id, score) where the id is the unique_file.id of the the given file and the score is the calculated score
+- The self.cnx instance variable must be set prior to running any of the functions of the filter. The self.cnx is a mysql connection object. Redwood will set the cnx instance if you use its import functions.
+
 
 ```python
 class YourFilterName(RedwoodFilter)
@@ -154,6 +164,18 @@ class YourFilterName(RedwoodFilter)
 
     def update(self, source_name):
         #code to update all filter tables with source_name data
+    
+    #survey function
+    def run_survey(source):
+        your code
+   
+    #build
+    def build():
+        your code
+
+    #clean
+    def clean(self)
+        your code
 
     #discovery functions
     def discover_your_discover_func0(self, arg0, ..., argN):
@@ -162,14 +184,7 @@ class YourFilterName(RedwoodFilter)
     def discover_your discover_funcM(self, arg0, ..., argN):
         your code
 
-    #survey function
-    def run_survey(source):
-        your code
-```
-
-Notes about filter creation
-*  The update function must produce (or update if not exists) a table called self.score_table with two columns (id, score) where the id is the unique_file.id of the the given file and the score is the calculated score
-*  The self.cnx instance variable must be set prior to running any of the functions of the filter. The self.cnx is a mysql connection object
+    ```
 
 ##Screen Shots 
 <i>Sceenshot of the Sample Shell</i><br>
