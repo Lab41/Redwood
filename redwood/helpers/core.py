@@ -31,7 +31,7 @@ from redwood.filters.redwood_filter import RedwoodFilter
 from redwood.filters import filter_list
 from redwood.foundation.prevalence import PrevalenceAnalyzer
 
-SourceInfo = namedtuple('SourceInfo', 'source_id source_name os_id os_name')
+SourceInfo = namedtuple('SourceInfo', 'source_id source_name os_id os_name date_acquired')
 
 
 def get_filter_by_name(filter_name):
@@ -106,9 +106,14 @@ def get_source_info(cnx, source_name):
     cursor = cnx.cursor()
     
     query = """
-        SELECT media_source.id as source_id, media_source.name as source_name, os.id as os_id, os.name as os_name
-        FROM media_source LEFT JOIN os ON media_source.os_id = os.id where media_source.name = "{}";
-    """.format(source_name)
+        SELECT media_source.id as source_id,
+               media_source.name as source_name,
+               os.id as os_id, os.name as os_name,
+               media_source.date_acquired as date_acquired
+        FROM media_source
+        LEFT JOIN os
+        ON media_source.os_id = os.id
+        WHERE media_source.name = "{}";""".format(source_name)
    
     cursor.execute(query)
     r =  cursor.fetchone()
@@ -116,7 +121,7 @@ def get_source_info(cnx, source_name):
     if r is None:
         return r
 
-    return SourceInfo(r[0], r[1], r[2],r[3])
+    return SourceInfo(r[0], r[1], r[2],r[3],r[4])
 
 def get_num_systems(cnx, os_name_or_id):
     """
@@ -203,7 +208,7 @@ def table_exists(cnx, name):
     else: 
         return True
 
-def get_sources(cnx):
+def get_all_sources(cnx):
     """
     Returns a list of all sources currently loaded into Redwood
     
@@ -213,7 +218,7 @@ def get_sources(cnx):
     cursor = cnx.cursor()
     result = list()
     try:
-        cursor.execute("""SELECT media_source.name, date_acquired, os.name FROM media_source
+        cursor.execute("""SELECT media_source.id, media_source.name, os.id, os.name, date_acquired FROM media_source
         INNER JOIN os
         ON media_source.os_id = os.id
         """)
@@ -222,9 +227,13 @@ def get_sources(cnx):
     except Exception as err:
         print err
         return None
-        
-    return result
-    
+
+    sources = list()
+    for r in result:
+        sources.append(SourceInfo(r[0],r[1], r[2],r[3],r[4]))
+
+    return sources
+ 
 def get_repuation_by_source(cnx, source_name):
     """
     Returns a list of scores for every file on the source
