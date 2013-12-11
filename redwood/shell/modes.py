@@ -8,6 +8,7 @@ import redwood.io.csv_importer as csv_load
 from redwood.filters import filter_list
 import redwood.helpers.core as core
 from redwood.foundation.aggregator import Aggregator
+from redwood.foundation.report import Report
 import time
 import traceback
 
@@ -171,7 +172,7 @@ class FilterMode(GeneralMode):
         plugin.clean()
         print "all data deleted associated with filter \"{}\"".format(plugin.name)
 
-    def do_list(self, args=None):
+    def do_list(self, args = None):
         '''list: lists the avialble filters'''
         print "Available Filters"
         i = 0
@@ -187,7 +188,25 @@ class FilterMode(GeneralMode):
             ag.aggregate(filter_list, args)
         else:
             ag.aggregate(filter_list)
-    
+
+    def do_run_report_survey(self, source = None):
+        '''[*] run_survey (optional)<source_name>\n\t|- runs the survey function for the given source\n\t |- if no source is provided run_survey processes all sources\n\t|-[source_name] - option name of source to process'''
+        rpt = Report(self.cnx)
+        if source == None:
+            sources = core.get_all_sources(self.cnx)
+            for s in sources:
+                print "Running Report Survey for: " + s.source_name
+                rpt.run_filter_survey(s.source_name)
+                rpt.generate_report(s)
+        else:
+            src = core.get_source_info(self.cnx, source)
+            if src == None:
+                print "Source " + source + " does not exist"
+                return
+            print "Running Report Survey for: " + src.source_name
+            rpt.run_filter_survey(src.source_name)
+            rpt.generate_report(src)
+
 class StandardMode(GeneralMode):
     def __init__(self, cnx, controller):
         super(StandardMode, self).__init__(cnx, controller)
@@ -214,7 +233,7 @@ class StandardMode(GeneralMode):
 
     def do_import_filters(self, path):
         '''[*] import_filters <path>\n\t|-[path]   - path to the directory containing the filters'''
-        new_filters = core.import_filters(path)
+        new_filters = core.import_filters(path, self.cnx)
         print "New Filters: "
         print new_filters
         

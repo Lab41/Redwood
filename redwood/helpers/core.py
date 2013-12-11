@@ -43,7 +43,7 @@ def get_filter_by_name(filter_name):
     :return an instance of a loaded filter with name filter_name
     """
     for f in filter_list:
-        if f.name == "filter_name":
+        if f.name == filter_name:
             return f
 
     return None
