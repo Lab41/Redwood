@@ -164,7 +164,7 @@ class FilterMode(GeneralMode):
         print "completing analysis of data using filter \"{}\"".format(plugin.name)
 
     def do_clean(self, args=None):
-        '''clean <filter-id'''
+        '''clean <filter-id>'''
         v = GeneralMode.validateFilterId(args[0])
         if v < 0:
             return
