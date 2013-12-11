@@ -188,8 +188,8 @@ def db_load_file(connection, path):
     total_time =  time.time() - start_time
     print "...completed in {}".format(total_time)
     cursor.close()
-    
-    return SourceInfo(source_id, source_name, os_id, os_name) 
+    #TODO: just call get source info here
+    return SourceInfo(source_id, source_name, os_id, os_name, None) 
 
 def run(cnx, path, do_survey):
     """
