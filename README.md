@@ -184,7 +184,7 @@ class YourFilterName(RedwoodFilter)
     def discover_your discover_funcM(self, arg0, ..., argN):
         your code
 
-    ```
+```
 
 ##Screen Shots 
 <i>Sceenshot of the Sample Shell</i><br>
