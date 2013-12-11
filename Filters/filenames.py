@@ -110,6 +110,14 @@ class FileNameFilter(RedwoodFilter):
     def discover_unique_names(self, source):
         """usage: unique_names source_name"""
 
+        data = self.get_unique_names(source)
+        for (file, dir) in data:
+            print "Unique file %s %s" % (file, dir)
+        
+
+    def get_unique_names(self, source):
+        """usage: unique_names source_name"""
+
         #creates the basic tables if they do not exist
         self.build()
 
@@ -136,10 +144,7 @@ class FileNameFilter(RedwoodFilter):
 
         cursor.execute(query)
         data = cursor.fetchall()
-        
-        for (file, dir) in data:
-            print "Unique file %s %s" % (file, dir)
-        
+                
         cursor.close()
         return data
 
@@ -154,14 +159,13 @@ class FileNameFilter(RedwoodFilter):
         
         try:
             shutil.rmtree(survey_dir)
-        except Exception, e:
-            print e
+        except:
             pass
 
         os.mkdir(survey_dir)
         os.mkdir(resource_dir)
         
-        results = self.discover_unique_names(source_name)
+        results = self.get_unique_names(source_name)
         
         with open(html_file, 'w') as f:
 

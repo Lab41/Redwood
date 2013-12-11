@@ -195,7 +195,7 @@ class FilterMode(GeneralMode):
         if source == None:
             sources = core.get_all_sources(self.cnx)
             for s in sources:
-                print "Running Report Survey for: " + s.source_name
+                print "Running report survey for: " + s.source_name
                 rpt.run_filter_survey(s.source_name)
                 rpt.generate_report(s)
         else:
@@ -203,7 +203,7 @@ class FilterMode(GeneralMode):
             if src == None:
                 print "Source " + source + " does not exist"
                 return
-            print "Running Report Survey for: " + src.source_name
+            print "Running report survey for: " + src.source_name
             rpt.run_filter_survey(src.source_name)
             rpt.generate_report(src)
 
