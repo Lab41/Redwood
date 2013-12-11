@@ -231,18 +231,21 @@ def run(cnx, path, do_survey):
 
 def run_survey(cnx, sources):
     """
-        
+    runs the survey on a list of sources
+
+    :param sources: list of SourceInfo instances
     """
     rpt = Report(cnx)
      
     for f in filter_list:
         for src in sources:
             survey_path = f.run_survey(src.source_name)
-            curr_report_dir = os.path.join("reports", src.source_name, "filters", f.name)
-            try:
-                shutil.rmtree(curr_report_dir)
-            except:
-                pass
+            if survey_path is not None:
+                curr_report_dir = os.path.join("reports", src.source_name, "filters", f.name)
+                try:
+                    shutil.rmtree(curr_report_dir)
+                except:
+                    pass
 
-            shutil.move(survey_path, curr_report_dir)
-            rpt.generate_report(src)
+                shutil.move(survey_path, curr_report_dir)
+                rpt.generate_report(src)
