@@ -330,7 +330,7 @@ class FilterPrevalence(RedwoodFilter):
             f.write("""
             <html>
             <link href="../../../resources/css/style.css" rel="stylesheet" type="text/css">
-            <h2>Filter Prevalence Snapshot</h2>
+            <h2 class="redwood-title">Filter Prevalence Snapshot</h2>
             <body>
                 <h3 class="redwood-header">Histogram for {}</h3>
                 <img src="{}">
@@ -343,28 +343,28 @@ class FilterPrevalence(RedwoodFilter):
                         ))
   
             f.write("<h3 class=\"redwood-header\">The lowest 100 reputations for this filter</h3>")
-            f.write("<table border=\"1\" id=\"rounded-corner\">")
+            f.write("<table border=\"1\" id=\"redwood-table\">")
             f.write("<thead><tr><th class=\"rounded-head-left\">Score</th><th>Parent Path</th><th class=\"rounded-head-right\">Filename</th></tr></thead><tbody>")
             i = 0
             lr = len(results)
             for r in results:
                 if i == lr - 1:
                     f.write("</tbody><tfoot>")
-                    f.write("<tr><td class=\"rounded-foot-left\">{}</td><td>{}</td><td class=\"rounded-foot-right\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
+                    f.write("<tr><td class=\"rounded-foot-left-light\">{}</td><td>{}</td><td class=\"rounded-foot-right-light\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
                 else:
                     f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
                 i += 1
             f.write("</table>") 
 
-            f.write("<h3 class=\"redwood-header\">Those top 100 anomalous files</h3>")
-            f.write("<table border=\"1\" id=\"rounded-corner\">")
+            f.write("<h3 class=\"redwood-header\">The top 100 anomalous files</h3>")
+            f.write("<table border=\"1\" id=\"redwood-table\">")
             f.write("<thead><tr><th class=\"rounded-head-left\">Anomaly Value</th><th>Parent Path</th><th class=\"rounded-head-right\">Filename</th></tr></thead><tbody>")
             i = 0
             lr = len(anomalies)
             for r in anomalies:
                 if i == lr - 1:
                     f.write("</tbody><tfoot>")
-                    f.write("<tr><td class=\"rounded-foot-left\">{}</td><td>{}</td><td class=\"rounded-foot-right\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
+                    f.write("<tr><td class=\"rounded-foot-left-light\">{}</td><td>{}</td><td class=\"rounded-foot-right-light\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
                 else:
                     f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
                 i += 1

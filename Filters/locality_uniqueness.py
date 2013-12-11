@@ -434,7 +434,6 @@ class LocalityUniqueness(RedwoodFilter):
         
         results = self.show_results("bottom", 100, source_name, None)
 
- 
         with open(html_file, 'w') as f:
 
             f.write("""
@@ -443,10 +442,10 @@ class LocalityUniqueness(RedwoodFilter):
             <link href="../../../resources/css/style.css" rel="stylesheet" type="text/css">
             </head>
             <body>
-            <h2>Locality Uniqueness Snapshot</h2> 
+            <h2 class="redwood-title">Locality Uniqueness Snapshot</h2> 
             """)
             f.write("<h3 class=\"redwood-header\">The lowest 100 reputations for this filter</h3>")
-            f.write("<table border=\"1\" id=\"rounded-corner\">")
+            f.write("<table border=\"1\" id=\"redwood-table\">")
             f.write("<thead>")
             f.write("<tr><th class=\"rounded-head-left\">Score</th><th>Parent Path</th><th class=\"rounded-head-right\">Filename</th></tr>")
             f.write("</thead><tbody>")
@@ -455,7 +454,7 @@ class LocalityUniqueness(RedwoodFilter):
             for r in results:
                 if i == lr - 1:
                     f.write("</tbody><tfoot>")
-                    f.write("<tr><td class=\"rounded-foot-left\">{}</td><td>{}</td><td class=\"rounded-foot-right\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
+                    f.write("<tr><td class=\"rounded-foot-left-light\">{}</td><td>{}</td><td class=\"rounded-foot-right-light\">{}</td></tr></tfoot>".format(r[0], r[1], r[2]))
                 else:
                     f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
                 i += 1
