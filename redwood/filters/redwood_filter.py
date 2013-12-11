@@ -138,12 +138,30 @@ class RedwoodFilter(object):
         
         raise NotImplementedError
 
-    def run_func(self, func_name, args):
+    def run_func(self, func_name, *args):
         """
         Helper function that will run the <func_name> with <args> for this filter
 
         :param func_name: name of the function to run
         :param args: list of arguments to run with the function
         """
-        f = self.__getattribute__(func_name)
-        f(*args)
+        func = getattr(self, 'discover_' + func_name, None)
+        if not func:
+            return False
+            
+        func(*args)
+        return True
+
+    def do_help(self, cmd=''):
+        "Get help on a command. Usage: help command"
+        if cmd: 
+            func = getattr(self, 'discover_' + cmd, None)
+            if func:
+                print func.__doc__
+                return True
+            return False
+
+        publicMethods = filter(lambda funcname: funcname.startswith('discover_'), dir(self)) 
+        commands = [cmd.replace('discover_', '', 1) for cmd in publicMethods] 
+        print ("Discover commands: " + " ".join(commands))
+        return False

@@ -34,17 +34,11 @@ class SessionController:
             args = string.split(command)
            
             if(len(args) == 0):
-                getattr(mode, 'help')()
+                mode.do_help()
                 continue
            
-            action = args[0]
-            try:
-                func = getattr(mode, action) 
-            except AttributeError:
-                print "Command \'{}\' not recognized".format(action)
-                continue
-            if func is not None:
-                func(args[1:])
+
+            mode.execute(*args)
             
 
 
