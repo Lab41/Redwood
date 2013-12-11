@@ -143,7 +143,7 @@ Filters are the foundation of file scoring in Redwood. A Filter's central purpos
 In addition to generating a score for each file, a Filter can optionally create one or more "Discovery" functions.  A Discovery function is a function that allows the user of the Filter to explore the data beyond just deriving a score. It is common for a Discovery function to also be used in the calculations for file scoring -- the Redwood model just provides a structured way for the developer to make that function available to the end user. 
 
 ####Writing your own Filter
-Your filter should inherit from the base class RedwoodFilter in redwood.filters.redwood_filter. You must override those functions that raise a "NotImplementedError".  
+Your filter should inherit from the base class RedwoodFilter in redwood.filters.redwood_filter. You must override those functions that raise a "NotImplementedError".  To assist in writing your own filter, look at the sample filters (locality_uniqueness and file_prevalence) in the Filters directory. 
 
 - If you are using the Redwood Shell, any Filter placed in the Filters directory will be automatically imported into the application. 
 - All discovery functions should be preceded by "discover_" in their name so that during introspection a developer knows which functions are intended for discovery
