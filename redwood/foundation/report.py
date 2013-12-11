@@ -41,7 +41,6 @@ class Report():
         for f in filter_list:
             f.cnx = self.cnx
             path = f.run_survey(source_name)
-            print path
             try:
                 shutil.rmtree(self.report_dir + "/" + source_name + "/filters/" + f.name)
             except:
@@ -176,7 +175,7 @@ class Report():
                 WHERE source_id = {}
                 ORDER BY unique_file.reputation ASC
                 LIMIT 0, 100
-                """.format(source.os_id))
+                """.format(source.source_id))
             col_length = len(cursor.description)
             field_names = cursor.description
             results = cursor.fetchall()
@@ -201,7 +200,7 @@ class Report():
                 f.write("<tr>")
                 for l in row:
                     f.write("<td>{}</td>".format(l))
-                f.write("</tr>")
+                f.write("</tr>\n")
             f.write("</tbody></table></div>")
             f.write("</body></html>")
             f.close()
