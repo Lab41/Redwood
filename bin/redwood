@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import getopt
-import string
-import MySQLdb
 import exceptions
+import cmd
+import getopt
+import multiprocessing
+import os
+import string
+import sys
 import ConfigParser
+import MySQLdb
 import redwood.filters
 import redwood.connection.connect as rconn
 from redwood.shell.controller import SessionController
 
 
 def main(argv):
-
-    
 
     if(len(argv) != 1):
         print "Please provide database configuration file"
@@ -23,10 +23,15 @@ def main(argv):
     print '\033[1;31m\n\n#################################\nWelcome to Redwood\n#################################\n\033[1;m'
 
     print "Establishing connection to database...\n",
+    print "...running with {} cores".format(multiprocessing.cpu_count())
+    print "...loading filters from ./Filters directory if exists"
 
     cnx = rconn.connect_with_config(argv[0])
 
-    SessionController(cnx).run()
+    sc = SessionController()
+    sc.preloop(cnx)
+    sc.cmdloop()
+
     cnx.close()
 
 if __name__ == "__main__":
