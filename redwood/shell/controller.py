@@ -6,6 +6,7 @@ from redwood.filters import filter_list
 from modes import SubInterpreterFilter
 
 class SessionController(cmd.Cmd):
+    prompt = '\033[1;32mredwood$ \033[1;m'
 
     def default(self, line):
         if line == 'EOF' or line == 'exit':
@@ -19,14 +20,12 @@ class SessionController(cmd.Cmd):
         self.cnx = cnx
 
     def cmdloop(self):
-        doQuit = False
-        while doQuit != True:
-            try:
-                self.prompt = '\033[1;32mredwood$ \033[1;m'
-                core.import_filters("./Filters", self.cnx)
-                return cmd.Cmd.cmdloop(self)
-            except KeyboardInterrupt:
-                sys.stdout.write('\n')
+        try:
+            core.import_filters("./Filters", self.cnx)
+            return cmd.Cmd.cmdloop(self)
+        except KeyboardInterrupt:
+            sys.stdout.write('\n')
+            return self.cmdloop()
 
     def do_filter(self, line):
         '''[*] filter\n\t|--activates FILTER mode:'''
