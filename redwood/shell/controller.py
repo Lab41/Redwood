@@ -2,7 +2,6 @@ import cmd
 import sys
 import redwood.helpers.core as core
 import redwood.io.csv_importer as csv_load
-from redwood.filters import filter_list
 from modes import SubInterpreterFilter
 
 class SessionController(cmd.Cmd):
@@ -12,6 +11,8 @@ class SessionController(cmd.Cmd):
         if line == 'EOF' or line == 'exit':
             self.do_quit(line)
             return True
+        else:
+            print "*** Command not recognized, try 'help'"
 
     def emptyline(self):
         pass
@@ -27,9 +28,13 @@ class SessionController(cmd.Cmd):
             sys.stdout.write('\n')
             return self.cmdloop()
 
+    def help_help(self):
+        self.do_help('')
+
     def do_filter(self, line):
         '''[*] filter\n\t|--activates FILTER mode:'''
         sub_cmd = SubInterpreterFilter()
+        sub_cmd.preloop(self.cnx)
         sub_cmd.cmdloop()
 
     def do_import_filters(self, line):
@@ -61,10 +66,6 @@ class SessionController(cmd.Cmd):
         except:
             print "Error: Please specify a path and whether or not to include the survey"
         return
-
-    def do_greet(self, line):
-        for plugin in filter_list:
-            print plugin.name
 
     def do_quit(self, line):
         '''quit: Exit the redwood console'''

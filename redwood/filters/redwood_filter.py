@@ -152,16 +152,11 @@ class RedwoodFilter(object):
         func(*args)
         return True
 
-    def do_help(self, cmd=''):
+    def do_help(self, cmd):
         "Get help on a command. Usage: help command"
         if cmd: 
             func = getattr(self, 'discover_' + cmd, None)
             if func:
                 print func.__doc__
                 return True
-            return False
-
-        publicMethods = filter(lambda funcname: funcname.startswith('discover_'), dir(self)) 
-        commands = [cmd.replace('discover_', '', 1) for cmd in publicMethods] 
-        print ("Discover commands: " + " ".join(commands))
         return False
