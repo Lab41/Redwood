@@ -3,6 +3,7 @@ import sys
 import redwood.helpers.core as core
 import redwood.io.csv_importer as csv_load
 from modes import SubInterpreterFilter
+from redwood.filters import filter_list
 
 class SessionController(cmd.Cmd):
     prompt = '\033[1;32mredwood$ \033[1;m'
@@ -22,7 +23,8 @@ class SessionController(cmd.Cmd):
 
     def cmdloop(self):
         try:
-            core.import_filters("./Filters", self.cnx)
+            if not filter_list:
+                core.import_filters("./Filters", self.cnx)
             return cmd.Cmd.cmdloop(self)
         except KeyboardInterrupt:
             sys.stdout.write('\n')
@@ -40,7 +42,7 @@ class SessionController(cmd.Cmd):
     def do_import_filters(self, line):
         '''[*] import_filters <path>\n\t|-[path]   - path to the directory containing the filters'''
         print self.cnx
-        new_filters = core.import_filters(path, self.cnx)
+        new_filters = core.import_filters(line, self.cnx)
         print "New Filters: "
         print new_filters
 
