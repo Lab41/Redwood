@@ -18,7 +18,7 @@ from Queue import Queue
 # Returns a long
 def generateUniqueId(path):
 
-    m = hashlib.md5()
+    m = hashlib.sha1()
     m.update(path)
     first_five = m.digest()[:5]
     last_three = struct.pack("I", int(time.time()))[:3]
