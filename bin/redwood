@@ -28,8 +28,8 @@ def main(argv):
 
     cnx = rconn.connect_with_config(argv[0])
 
-    sc = SessionController()
-    sc.preloop(cnx)
+    sc = SessionController(cnx)
+    sc.preloop()
     sc.cmdloop()
 
     cnx.close()

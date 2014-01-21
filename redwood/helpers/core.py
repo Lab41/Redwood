@@ -104,7 +104,7 @@ def get_source_info(cnx, source_name):
     :return SourceInfo instance or None if not found
     """
     cursor = cnx.cursor()
-    
+   
     query = """
         SELECT media_source.id as source_id,
                media_source.name as source_name,
@@ -114,7 +114,7 @@ def get_source_info(cnx, source_name):
         LEFT JOIN os
         ON media_source.os_id = os.id
         WHERE media_source.name = "{}";""".format(source_name)
-   
+  
     cursor.execute(query)
     r =  cursor.fetchone()
     
@@ -122,6 +122,32 @@ def get_source_info(cnx, source_name):
         return r
 
     return SourceInfo(r[0], r[1], r[2],r[3],r[4])
+
+def get_malware_reputation_threshold(cnx):
+    """
+    Retrieves the max reputation of all confirmed malware
+
+    :param cnx: mysql connection instance
+       
+    :return max reputation score
+    """
+
+    cursor = cnx.cursor()
+
+    query = """
+        select AVG(unique_file.reputation)  
+            from rl_validator left join unique_file on rl_validator.id=unique_file.id 
+            LEFT JOIN file_metadata ON file_metadata.unique_file_id=unique_file.id where rl_validator.status=3;
+    """
+
+    cursor.execute(query)
+
+    r = cursor.fetchone()
+
+    if r is None:
+        return r
+
+    return r[0]
 
 def get_num_systems(cnx, os_name_or_id):
     """
@@ -154,7 +180,7 @@ def get_num_systems(cnx, os_name_or_id):
     return r[0]
 
 
-def update_analyzers_and_filters(cnx, sources):
+def update_analyzers(cnx, sources):
     """
     Runs Analyzers and Filters against each source in the source_os_list, updating the 
     approriate tables
@@ -169,19 +195,28 @@ def update_analyzers_and_filters(cnx, sources):
     pu = PrevalenceAnalyzer(cnx)
     pu.update(sources)
 
+    elapsed_time = time.time() - start_time
+    print "...completed analyzers on inputed sources in {}".format(elapsed_time) 
+
+
+def update_filters(cnx, sources):
+    
+    start_time = time.time() 
+
     #set the cnx for each plugin
     for p in filter_list:
         p.cnx = cnx
 
     for source in sources:
+        #for source in sources:
         print "==== Beginning filter analysis of {} ====".format(source.source_name)
         for p in filter_list:
             p.update(source.source_name)
 
     elapsed_time = time.time() - start_time
-    print "...completed Analyzers and Filters in {}".format(elapsed_time) 
+    print "...completed filter analysis on inputted sources in  {}".format(elapsed_time) 
 
-
+           
 
 def table_exists(cnx, name):
     """
@@ -234,7 +269,7 @@ def get_all_sources(cnx):
 
     return sources
  
-def get_repuation_by_source(cnx, source_name):
+def get_reputation_by_source(cnx, source_name):
     """
     Returns a list of scores for every file on the source
     
@@ -243,6 +278,8 @@ def get_repuation_by_source(cnx, source_name):
     
     cursor = cnx.cursor()
     result = list()
+
+    print "before: {}".format(source_name)
     try:
         cursor.execute("""SELECT ROUND(unique_file.reputation, 2), COUNT(DISTINCT unique_file.id) FROM unique_file
         INNER JOIN file_metadata

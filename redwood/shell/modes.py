@@ -2,12 +2,29 @@ import cmd
 import exceptions
 import sys
 import time
+import shlex
 import redwood.filters
+import redwood.helpers.core as core
 from redwood.filters import filter_list
 from redwood.foundation.aggregator import Aggregator
 from redwood.foundation.report import Report
 
 class SubInterpreterDiscover(cmd.Cmd):
+    
+    def __init__(self, cnx, line):
+        cmd.Cmd.__init__(self)
+        self.cnx = cnx
+
+        if line:
+            self.plugin = filter_list[int(line)]
+            self.prompt = '\033[1;32mredwood-'+str(self.plugin.name)+'-discover$ \033[1;m'
+            publicMethods = filter(lambda funcname: funcname.startswith('discover_'), dir(self.plugin)) 
+            self.added_attrs = []
+            for method in publicMethods:
+                self.added_attrs.append(method.replace("discover_", "do_", 1))
+                setattr(SubInterpreterDiscover, method.replace("discover_", "do_", 1), self.run)
+
+
     def default(self, line):
         if line == 'EOF' or line == 'exit' or line == 'quit':
             self.do_back(line)
@@ -30,7 +47,9 @@ class SubInterpreterDiscover(cmd.Cmd):
     def run(self, line):
         '''Calls out the run_func in redwood_filter'''
         if line:
-            line_a = self.cmdline.split()
+            #line_a = self.cmdline.split()
+            line_a = shlex.split(self.cmdline)
+            print "line a: {}".format(line_a)
             func_name = line_a[0]
             args = tuple(line_a[1:])
             self.plugin.run_func(func_name, *args)
@@ -47,18 +66,26 @@ class SubInterpreterDiscover(cmd.Cmd):
         self.cmdline = line
         return line
 
-    def preloop(self, line=None):
-        if line:
-            self.plugin = filter_list[int(line)]
-            self.prompt = '\033[1;32mredwood-'+str(self.plugin.name)+'-discover$ \033[1;m'
-            publicMethods = filter(lambda funcname: funcname.startswith('discover_'), dir(self.plugin)) 
-            self.added_attrs = []
-            for method in publicMethods:
-                self.added_attrs.append(method.replace("discover_", "do_", 1))
-                setattr(SubInterpreterDiscover, method.replace("discover_", "do_", 1), self.run)
+    def do_quit(self, line):
+        '''quit: Exit the redwood console'''
+        if self.cnx != None:
+            self.cnx.close()
+        sys.stdout.write('\n')
+        sys.exit(0)
 
 class SubInterpreterFilter(cmd.Cmd):
     prompt = '\033[1;32mredwood-filter$ \033[1;m'
+        
+    def __init__(self, cnx):
+        cmd.Cmd.__init__(self)
+        self.cnx = cnx
+    
+    def do_quit(self, line):
+        '''quit: Exit the redwood console'''
+        if self.cnx != None:
+            self.cnx.close()
+        sys.stdout.write('\n')
+        sys.exit(0)
 
     def default(self, line):
         if line == 'EOF' or line == 'exit' or line == 'quit':
@@ -69,9 +96,6 @@ class SubInterpreterFilter(cmd.Cmd):
 
     def emptyline(self):
         pass
-
-    def preloop(self, cnx=None):
-        self.cnx = cnx
 
     def help_help(self):
         self.do_help('')
@@ -85,8 +109,7 @@ class SubInterpreterFilter(cmd.Cmd):
         if line:
             v = SubInterpreterFilter.validateFilterId(line)
             if v >= 0:
-                sub_cmd = SubInterpreterDiscover()
-                sub_cmd.preloop(line)
+                sub_cmd = SubInterpreterDiscover(self.cnx, line)
                 sub_cmd.cmdloop()
         else:
             print "Error: Filter Id required"
@@ -102,8 +125,8 @@ class SubInterpreterFilter(cmd.Cmd):
         plugin.show_results(args[1], args[2], args[3], args[4])
 
     def do_update(self, line):
-        '''update <filter-id> <source>'''
-        args = line.split()
+        '''update <filter-id> <source> <force?>'''
+        args = shlex.split(line)
         if len(args) != 3:
             print "Error: incorrect number of arguments"
             return
@@ -165,23 +188,26 @@ class SubInterpreterFilter(cmd.Cmd):
         else:
             ag.aggregate(filter_list)
 
-    def do_run_report_survey(self, list):
-        '''[*] run_survey (optional)<source_name>\n\t|- runs the survey function for the given source\n\t |- if no source is provided run_survey processes all sources\n\t|-[source_name] - option name of source to process'''
-        rpt = Report(self.cnx)
-        if source == None:
-            sources = core.get_all_sources(self.cnx)
-            for s in sources:
-                print "Running report survey for: " + s.source_name
-                rpt.run_filter_survey(s.source_name)
-                rpt.generate_report(s)
+    def do_run_survey(self, line):
+        '''[*] run_survey <source_name>\n\t|- runs the survey function for the given source\n\t |- if no source is provided run_survey processes all sources\n\t|-[source_name] - option name of source to process'''
+
+	args = shlex.split(line)
+	
+	if len(args) < 1:
+            print "Error: Incorrect # of arguments"
+	    return
+
+        src_obj = core.get_source_info(self.cnx, args[0])
+        
+        if src_obj is None:
+            print "Error: Unable to find source {}".format(args[0])
+            return
         else:
-            src = core.get_source_info(self.cnx, source)
-            if src == None:
-                print "Source " + source + " does not exist"
-                return
-            print "Running report survey for: " + src.source_name
-            rpt.run_filter_survey(src.source_name)
-            rpt.generate_report(src)
+            rpt = Report(self.cnx, src_obj)
+	    if len(args) > 1:
+        	rpt.run(args[1:])
+	    else:
+		rpt.run(None)
 
     @staticmethod
     def validateFilterId(str_val):

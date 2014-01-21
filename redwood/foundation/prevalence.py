@@ -42,10 +42,9 @@ class PrevalenceAnalyzer():
         print "[+] Conducting global analysis for prevalence"
 
         cursor = self.cnx.cursor()
-        
         #iterate through each of the new sources, updating the prevalence table accordingly
         for source in sources:
-            
+            print source.source_name            
             #will need to fetch the number of systems first for the given os
             query = """
                 select COUNT(os.name) from os LEFT JOIN media_source ON(os.id = media_source.os_id) 
@@ -106,7 +105,10 @@ class PrevalenceAnalyzer():
 
         #TODO: There should be a better way for below code 
         print "[+] Rebuilding the aggregated prevalence table for directories"
-    
+   
+        if len(sources) == 0:
+            return
+ 
         cursor.execute("DROP TABLE IF EXISTS global_dir_combined_prevalence")
 
         self.cnx.commit()

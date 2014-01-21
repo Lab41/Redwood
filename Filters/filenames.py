@@ -80,7 +80,7 @@ class FileNameFilter(RedwoodFilter):
         
         later = time.time()
         
-        print "Updated counts in {} secs\nUpdating Scores".format(later - now)
+        #print "Updated counts in {} secs\nUpdating Scores".format(later - now)
 
         cursor.execute("SELECT MAX(count) FROM FileNameFilter_unique_name")
         (max_count,) = cursor.fetchone()
@@ -104,7 +104,7 @@ class FileNameFilter(RedwoodFilter):
         cursor.execute(query)
         self.cnx.commit()
         later = time.time()
-        print "Scores updated in {} secs".format(later - now)
+        #print "Scores updated in {} secs".format(later - now)
         cursor.close()
 
     def discover_unique_names(self, source):

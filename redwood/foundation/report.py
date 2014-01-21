@@ -26,33 +26,69 @@ import math
 from redwood.filters import filter_list
 from redwood.helpers import core
 import matplotlib.pylab as plt
+from redwood.foundation.aggregator import Aggregator
+
 
 class Report():  
-    def __init__(self, cnx):
+    def __init__(self, cnx, source_info):
         self.report_dir = "reports"          
         self.cnx = cnx
-
+        self.source = source_info
+        
+    def run(self, agg_weights=None):
+        
+        print "Running report survey for: " + self.source.source_name
+        print "... aggregating most recent filter scores" 
+        ag = Aggregator(self.cnx)
+        ag.aggregate(filter_list, agg_weights)
+        self.run_filter_survey()
+        self.generate_report()
 
     #collects survey reports from each filter and aggregates the results into one central report
-    def run_filter_survey(self, source_name=None):
-        print "Generating Report"
-        if source_name == None:        
-            return
+    def run_filter_survey(self):
+        print "...Generating Report"
         for f in filter_list:
             f.cnx = self.cnx
-            path = f.run_survey(source_name)
+	    print f.name
+            path = f.run_survey(self.source.source_name)
             try:
-                shutil.rmtree(self.report_dir + "/" + source_name + "/filters/" + f.name)
+                shutil.rmtree(self.report_dir + "/" + self.source.source_name + "/filters/" + f.name)
             except:
                 pass
-            shutil.move(path, self.report_dir + "/" + source_name + "/filters/" + f.name)
+	    
+	    if path == None:
+		continue
+
+            shutil.move(path, self.report_dir + "/" + self.source.source_name + "/filters/" + f.name)
         
-    def generate_report(self, source):
-        report_dir = "reports/" + source.source_name
-        report_file = source.source_name + "_report.html"
+    def generate_report(self):
+        report_dir = "reports/" + self.source.source_name
+        report_file = self.source.source_name + "_report.html"
         html_file = os.path.join(report_dir, report_file)
 
-        score_counts = core.get_repuation_by_source(self.cnx, source.source_name)
+        score_counts = core.get_reputation_by_source(self.cnx, self.source.source_name)
+
+        bins = [.05,.1,.15,.2,.25,.30,.35,.40,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1.00]
+        scores, counts = zip(*score_counts)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, title="Reputation Distribution")
+        ax.hist(scores, weights=counts, bins = bins)
+        ax.set_xlabel("Reputation Score")
+        ax.set_ylabel("File Occurrences")  
+
+        threshold = core.get_malware_reputation_threshold(self.cnx)
+        print "thres: {}".format(threshold) 
+        if threshold is not None:
+            plt.axvline(x=threshold, color="r", ls='--')
+        #plt.xticks(bins)
+        
+        #for tick in ax.xaxis.get_major_ticks():
+        #    tick.label.set_fontsize(8)
+
+        hist_reputation = os.path.join(report_dir, "rep.png")
+        plt.savefig(hist_reputation) 
+
+       
         table_height = int(math.ceil(len(score_counts) / float(3)))
         file_count = 0
         for s in score_counts:
@@ -67,29 +103,32 @@ class Report():
             <body>
             <div id="navigation">
                 <image class="center" src="../resources/images/redwood_logo.png" height="25%"/>
-                <dl class="list">""")
+                <ul id="navigation" class="list">""")
             for d in os.listdir(report_dir + "/filters"):
                 if os.path.isdir(os.path.join(report_dir + "/filters", d)) and d[0] != '.':
                     filter_survey = os.path.join("filters/" + d, "survey.html")
                     f.write("""
-                <div class="list">
-                    <dt><a class="button" href=\"{}\">{}</a></dt>
-                </div>""".format(filter_survey, d))
+                    <li><a class="button" href=\"{}\">{}</a></dt>
+		    """.format(filter_survey, d))
             f.write("""
-                </dl>
+                </ul>
             </div>
             <div id="top">
-                <h2 class="redwood-title">Report for {}</h2>\n""".format(source.source_name))
+                <h2 class="redwood-title">Report for {}</h2>\n""".format(self.source.source_name))
             f.write("\t\t<h3 class=\"redwood-header\">Source Information</h3>\n")
             f.write("\t\t<dl style=\"text-indent: 5px;\">\n")
-            f.write("\t\t\t<dt>Acquisition Date: {}</dt>\n".format(source.date_acquired))
-            f.write("\t\t\t<dt>Operating System: {}</dt>\n".format(source.os_name))
+            f.write("\t\t\t<dt>Acquisition Date: {}</dt>\n".format(self.source.date_acquired))
+            f.write("\t\t\t<dt>Operating System: {}</dt>\n".format(self.source.os_name))
             f.write("\t\t\t<dt>File Count: {}</dt>\n".format(file_count))
             f.write("\t\t</dl>\n\t\t</div>\n")            
             f.write("\t\t<div id=\"content\">\n")
             f.write("\t\t<table border=\"1\" id=\"redwood-table\">\n")
             f.write("\t\t\t<caption class=\"caption\">File Score Distribution</caption>\n")
             f.write("\t\t\t<thead></thead>\n")
+            f.write("""
+                <caption id="redwood-table" class="caption">Reputation Distribution</caption>
+                <img src="rep.png"/>
+            """)
             f.write("""
             <thead>
                 <tr>
@@ -188,7 +227,7 @@ class Report():
                 WHERE source_id = {}
                 ORDER BY unique_file.reputation ASC
                 LIMIT 0, 100
-                """.format(source.source_id))
+                """.format(self.source.source_id))
             col_length = len(cursor.description)
             field_names = cursor.description
             results = cursor.fetchall()

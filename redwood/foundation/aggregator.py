@@ -33,7 +33,6 @@ class Aggregator():
     #should come in as a:x, b:y, c:z, etc, where x+y+z = 100, and a-c are filter ids
     #standard aggregate is equally weighted
     def aggregate(self, filter_list, dist_str=None):
-        
         weights = list()
         filters = list()
 
@@ -71,12 +70,12 @@ class Aggregator():
                 weights.append((i, even_split))
                 i += 1
 
-        query = """
-        UPDATE unique_file  
-        LEFT JOIN fp_scores ON fp_scores.id = unique_file.id
-        LEFT JOIN lu_scores ON lu_scores.id = unique_file.id
-        SET unique_file.reputation = (.5 * fp_scores.score + .5 * lu_scores.score)
-        """
+        #query = """
+        #UPDATE unique_file  
+        #LEFT JOIN fp_scores ON fp_scores.id = unique_file.id
+        #LEFT JOIN lu_scores ON lu_scores.id = unique_file.id
+        #SET unique_file.reputation = (.5 * fp_scores.score + .5 * lu_scores.score)
+        #"""
         
         query = "UPDATE unique_file\n"
 
@@ -89,6 +88,7 @@ class Aggregator():
         
         for w in weights:
             fltr = filter_list[w[0]]
+	    score = w[1]
             query += str(w[1]) + " * " + fltr.score_table + ".score + "
             
         query = query[0:len(query)-3]

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS os (
 CREATE TABLE IF NOT EXISTS media_source (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     reputation INT NULL,
-    name VARCHAR(45) NULL,
+    name VARCHAR(150) NULL,
     date_acquired DATETIME NULL,
     os_id INT UNSIGNED NOT NULL,
     PRIMARY KEY (id),
@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS unique_file (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     hash CHAR(40) NOT NULL,
     reputation DOUBLE NOT NULL DEFAULT .5,
+    status INT DEFAULT 0,
     PRIMARY KEY (id),
     INDEX file_reputation (reputation ASC),
     UNIQUE INDEX hash_UNIQUE (hash ASC)

@@ -134,7 +134,7 @@ class FilterPrevalence(RedwoodFilter):
        
         query = """
             CREATE TABLE IF NOT EXISTS `fp_scores` (
-            id BIGINT unsigned NOT NULL,
+            id BIGINT UNSIGNED NOT NULL,
             score double DEFAULT NULL,
             PRIMARY KEY(id),
             CONSTRAINT `fk_unique_file1_id` FOREIGN KEY (`id`) 
@@ -192,7 +192,7 @@ class FilterPrevalence(RedwoodFilter):
         ax.set_xlabel("Num of Systems")
         ax.set_ylabel("File Occurrences")    
         
-        plt.xticks(bins)
+        #plt.xticks(bins)
         
         if output is None:
             plt.show()
@@ -208,7 +208,6 @@ class FilterPrevalence(RedwoodFilter):
         """
 
         print '[+] Running \"Histogram by Source\"...'
-   
         cursor = self.cnx.cursor()
         
         src_info = core.get_source_info(self.cnx, source_name)
@@ -227,6 +226,7 @@ class FilterPrevalence(RedwoodFilter):
             GROUP BY global_file_prevalence.count ORDER BY global_file_prevalence.count ASC;
         """.format(source_name)
 
+
         cursor.execute(query)
 
         data = cursor.fetchall()
@@ -243,7 +243,7 @@ class FilterPrevalence(RedwoodFilter):
         ax.set_xlabel("Num of Systems")
         ax.set_ylabel("File Occurrences")    
         
-        plt.xticks(bins)
+        #plt.xticks(bins)
        
         if output is None:
             plt.show()
@@ -266,8 +266,7 @@ class FilterPrevalence(RedwoodFilter):
             return
 
         #anomaly type:  low prevalence files in normally high prevalence directories
-        print "Anomaly Detection: Unique files in common areas"
-        print "running..."
+        print "...Anomaly Detection: Unique files in common areas"
          
         query = """
             SELECT (global_dir_combined_prevalence.average - global_file_prevalence.average) as difference, 

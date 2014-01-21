@@ -303,7 +303,7 @@ class LocalityUniqueness(RedwoodFilter):
         cursor = self.cnx.cursor()
 
         query = ("CREATE table IF NOT EXISTS locality_uniqueness ("
-                "file_metadata_id BIGINT unsigned unique,"
+                "file_metadata_id BIGINT unique,"
                 "score DOUBLE NOT NULL,"
                 "PRIMARY KEY(file_metadata_id),"
                 "INDEX lu_score (score ASC),"

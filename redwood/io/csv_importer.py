@@ -56,8 +56,11 @@ def db_load_file(connection, path):
     fields = string.split(filename, '--')
 
     if(len(fields) != 3):
-        print "*** Error: Improper naming scheme"
+        print "*** Error: Improper naming scheme with {} fields".format(len(fields))
+        print path
+        print fields
         return
+    
     cursor = connection.cursor()
     os_id = None
 
@@ -115,23 +118,25 @@ def db_load_file(connection, path):
         if connection:
             connection.rollback()                       
             print "*** Error %d: %s" % (e.args[0],e.args[1])
-            sys.exit(1)                                        
+            return                                        
 
     media_source_id = cursor.lastrowid
     
     path = path.replace('\\','\\\\')
     #load raw csv into the staging table from the client
-    add_staging_table = ("LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table` "
-                         "FIELDS TERMINATED BY ','  ENCLOSED BY '\"' LINES TERMINATED BY '\\n' "
-                         "IGNORE 1 LINES "
-                         "(global_file_id, parent_id, dirname, basename,contents_hash,dirname_hash,filesystem_id,device_id,"
-                         "attributes,user_owner,group_owner,size,@created_param,@accessed_param,@modified_param,@changed_param,"
-                         "@user_flags,links_to_file, @disk_offset, @entropy, @file_content_status, @extension, file_type) "
-                         "SET created = FROM_UNIXTIME(@created_param), last_accessed = FROM_UNIXTIME(@accessed_param),"
-                         "last_modified = FROM_UNIXTIME(@modified_param), last_changed = FROM_UNIXTIME(@changed_param),"
-                         "user_flags = nullif(@user_flags,''), disk_offset = nullif(@disk_offset,''),"
-                         "entropy=nullif(@entropy,''), file_content_status=nullif(@file_content_status,''),"
-                         "extension = nullif(@extension,'');").format(path) 
+    add_staging_table = ("""LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table`
+                         FIELDS TERMINATED BY ','  ENCLOSED BY '\"' LINES TERMINATED BY '\\n'
+                         IGNORE 1 LINES
+                         (global_file_id, parent_id, dirname, basename,contents_hash,dirname_hash,filesystem_id,device_id,
+                         attributes,user_owner,group_owner,size,@created_param,@accessed_param,@modified_param,@changed_param,
+                         @user_flags,links_to_file, @disk_offset, @entropy, @file_content_status, @extension, file_type) 
+                         SET created = STR_TO_DATE(@created_param, '%Y-%m-%d %k:%i:%s.%f'), 
+			 last_accessed = STR_TO_DATE(@accessed_param, '%Y-%m-%d %k:%i:%s.%f'),
+                         last_modified = STR_TO_DATE(@modified_param, '%Y-%m-%d %k:%i:%s.%f'), 
+			 last_changed = STR_TO_DATE(@changed_param, '%Y-%m-%d %k:%i:%s.%f'),
+                         user_flags = nullif(@user_flags,''), disk_offset = nullif(@disk_offset,''),
+                         entropy=nullif(@entropy,''), file_content_status=nullif(@file_content_status,''),
+                         extension = nullif(@extension,'');""").format(path) 
 
 
     try:
@@ -191,7 +196,7 @@ def db_load_file(connection, path):
     #TODO: just call get source info here
     return SourceInfo(source_id, source_name, os_id, os_name, None) 
 
-def run(cnx, path, do_survey):
+def run(cnx, path):
     """
     Loads all csv files from the path into the database
 
@@ -206,7 +211,8 @@ def run(cnx, path, do_survey):
     
     if(os.path.isfile(path)):
         info =  db_load_file(cnx, path)
-        src_os_list.append(info)
+        if info is not None:
+            src_os_list.append(info)
     elif(os.path.isdir(path)):
         for r, d, f in os.walk(path):
             while len(d) > 0:
@@ -215,37 +221,14 @@ def run(cnx, path, do_survey):
                 if not file.startswith('.'):
                     os.path.abspath(os.path.join(r, file))
                     info = db_load_file(cnx, path + "/" + file)
-                    src_os_list.append(info)
+                    if info is not None:
+                        src_os_list.append(info)
     else:
         print 'Please input a valid file or a directory for import'
         return
 
     #update the analyzers and filters
-    core.update_analyzers_and_filters(cnx,src_os_list)
-    
-    if do_survey is True:
-        run_survey(cnx, src_os_list)
+    core.update_analyzers(cnx,src_os_list)
+    core.update_filters(cnx, src_os_list)
 
 
-
-
-def run_survey(cnx, sources):
-    """
-    runs the survey on a list of sources
-
-    :param sources: list of SourceInfo instances
-    """
-    rpt = Report(cnx)
-     
-    for f in filter_list:
-        for src in sources:
-            survey_path = f.run_survey(src.source_name)
-            if survey_path is not None:
-                curr_report_dir = os.path.join("reports", src.source_name, "filters", f.name)
-                try:
-                    shutil.rmtree(curr_report_dir)
-                except:
-                    pass
-
-                shutil.move(survey_path, curr_report_dir)
-                rpt.generate_report(src)
