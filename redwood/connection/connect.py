@@ -37,16 +37,16 @@ def connect_with_config(config_path):
     Given a path, returns a connection object
 
     :param config_path: path to the configuration file
-    
-    :return MySQL connection object 
+
+    :return MySQL connection object
     """
-    
+
     cnx = None
-    
+
     if config_path is None:
         print "Error: A config file must be provided"
         return cnx
-     
+
     try:
         with open(config_path): pass
     except IOError:
@@ -59,10 +59,14 @@ def connect_with_config(config_path):
     password    =       config.get("mysqld", "password")
     host        =       config.get("mysqld", "host")
     database    =       config.get("mysqld", "database")
-    
+    try:
+        port = int(config.get("mysqld", "port"))
+    except:
+        port = 3306
+
     try:
 
-        cnx = MySQLdb.connect(host=host, user=user, passwd=password, db=database, local_infile=1)
+        cnx = MySQLdb.connect(host=host, user=user, passwd=password, db=database, port=port, local_infile=1)
     except MySQLdb.Error as e:
         print(e)
         return None
@@ -70,5 +74,5 @@ def connect_with_config(config_path):
     if cnx is None:
         print "Error: Unable to connect to database"
         return None
-    
-    return cnx 
+
+    return cnx
