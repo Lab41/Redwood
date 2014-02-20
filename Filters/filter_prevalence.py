@@ -230,8 +230,8 @@ class FilterPrevalence(RedwoodFilter):
         cursor.execute(query)
 
         data = cursor.fetchall()
-        
-        if data == None:
+
+        if data == None or len(data) is 0:
             return
         
         counts, ranges = zip(*data)
@@ -255,6 +255,7 @@ class FilterPrevalence(RedwoodFilter):
         Conducts an anomaly search on a given source
 
         :param source: source
+        :param out: output file
         """
         
         cursor = self.cnx.cursor()
@@ -290,7 +291,7 @@ class FilterPrevalence(RedwoodFilter):
         with open(out, "w") as f:
             v=0
             for x in cursor.fetchall():
-                f.write("{}: {}    {}{}\n".format(v, x[0], x[1], x[2]))
+                f.write("{}: {}    {}/{}\n".format(v, x[0], x[1], x[2]))
                 v+=1
              
         cursor.close()

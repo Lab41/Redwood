@@ -136,8 +136,8 @@ def get_malware_reputation_threshold(cnx):
 
     query = """
         select AVG(unique_file.reputation)  
-            from rl_validator left join unique_file on rl_validator.id=unique_file.id 
-            LEFT JOIN file_metadata ON file_metadata.unique_file_id=unique_file.id where rl_validator.status=3;
+            from validator_0 left join unique_file on validator_0.id=unique_file.id 
+            LEFT JOIN file_metadata ON file_metadata.unique_file_id=unique_file.id where validator_0.status=3;
     """
 
     cursor.execute(query)

@@ -130,14 +130,13 @@ def db_load_file(connection, path):
                          (global_file_id, parent_id, dirname, basename,contents_hash,dirname_hash,filesystem_id,device_id,
                          attributes,user_owner,group_owner,size,@created_param,@accessed_param,@modified_param,@changed_param,
                          @user_flags,links_to_file, @disk_offset, @entropy, @file_content_status, @extension, file_type) 
-                         SET created = STR_TO_DATE(@created_param, '%Y-%m-%d %k:%i:%s.%f'), 
-			 last_accessed = STR_TO_DATE(@accessed_param, '%Y-%m-%d %k:%i:%s.%f'),
-                         last_modified = STR_TO_DATE(@modified_param, '%Y-%m-%d %k:%i:%s.%f'), 
-			 last_changed = STR_TO_DATE(@changed_param, '%Y-%m-%d %k:%i:%s.%f'),
+                         SET created = FROM_UNIXTIME(@created_param), 
+			 last_accessed = FROM_UNIXTIME(@accessed_param),
+                         last_modified = FROM_UNIXTIME(@modified_param), 
+			 last_changed = FROM_UNIXTIME(@changed_param),
                          user_flags = nullif(@user_flags,''), disk_offset = nullif(@disk_offset,''),
                          entropy=nullif(@entropy,''), file_content_status=nullif(@file_content_status,''),
                          extension = nullif(@extension,'');""").format(path) 
-
 
     try:
 

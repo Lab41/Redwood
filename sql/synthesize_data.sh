@@ -4,9 +4,9 @@ SOURCES_ROOT=sources
 DIR_BASE=Home
 DIR_TEMPLATE=${DIR_BASE}_0
 NUM_SUBDIRS=10
-NUM_BASE_FILES=50
+NUM_BASE_FILES=30
 NUM_SOURCES=20
-NUM_SUBDIR_FILES=400
+NUM_SUBDIR_FILES=10
 
 
 
@@ -112,7 +112,7 @@ done
 
 i=1
 
-while [ $i -lt $(( NUM_SOURCES - 1 )) ]; do
+while [ $i -lt $(( NUM_SOURCES )) ]; do
 
     cp -rf ${SOURCES_ROOT}/${DIR_TEMPLATE} ${SOURCES_ROOT}/${DIR_BASE}_${i}
     i=$[$i+1]
@@ -124,14 +124,22 @@ genAnomalyFileName
 genAnomalyLocality
 genAnomalyPrevalence
 
-echo "Changing ownership of files to \"nobody\" which will require root"
-sudo chown -R nobody:nobody ${SOURCES_ROOT}
+i=0
 
 
 #go ahead and create the csvs
-#if [ -e filewalk.py ]; then
-#    while [ $i -lt ${NUM_SOURCES} ]; do loc="${SOURCES_ROOT}/${DIR_TEMPLATE}_${i}"; python filewalk.py $loc test_os source_${i};  i=$[$i+1]; done
-#fi
+if [ -e filewalk.py ]; then
+
+    rm -rf csv
+    mkdir csv
+
+    while [ $i -lt ${NUM_SOURCES} ]; do 
+        loc="${SOURCES_ROOT}/${DIR_BASE}_${i}" 
+        python filewalk.py $loc test_os source_${i} csv
+        i=$[$i+1]
+    done
+fi
+
 echo "done"
 
 

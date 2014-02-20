@@ -91,13 +91,19 @@ omitted_dirs = ['/dev', '/proc', '/sys', '/Volumes', '/mnt', '/net']
 
 def main(argv):
 
-    if(len(argv) != 4):
-        print "filewalk.py <directory> <os> <source>"
+    if(len(argv) != 5):
+        print "filewalk.py <directory> <os> <source> <output_dir>"
+        return
+
+
+    #make sure output dir exists
+    if os.path.exists(argv[4]) is False:
+        print "Output dir {} does not exist".format(argv[4])
         return
 
     today = datetime.date.today()
     str_date = today.strftime('%Y-%m-%d')
-    out_file = "{}--{}--{}".format(str_date, argv[2], argv[3])
+    out_file = os.path.join(argv[4], "{}--{}--{}".format(str_date, argv[2], argv[3]))
     start_dir = argv[1]
 
 

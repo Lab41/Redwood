@@ -76,7 +76,9 @@ class Report():
         ax.set_xlabel("Reputation Score")
         ax.set_ylabel("File Occurrences")  
 
-        threshold = core.get_malware_reputation_threshold(self.cnx)
+        threshold = None
+        #if you have a validation engine, use the line below
+        #threshold = core.get_malware_reputation_threshold(self.cnx)
         print "thres: {}".format(threshold) 
         if threshold is not None:
             plt.axvline(x=threshold, color="r", ls='--')

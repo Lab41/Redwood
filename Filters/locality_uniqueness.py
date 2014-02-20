@@ -301,17 +301,23 @@ class LocalityUniqueness(RedwoodFilter):
         Build all persistent tables associated with this filter
         """
         cursor = self.cnx.cursor()
-
-        query = ("CREATE table IF NOT EXISTS locality_uniqueness ("
-                "file_metadata_id BIGINT unique,"
-                "score DOUBLE NOT NULL,"
-                "PRIMARY KEY(file_metadata_id),"
-                "INDEX lu_score (score ASC),"
-                "CONSTRAINT fk_file_metadata FOREIGN KEY (file_metadata_id)"
-                "REFERENCES file_metadata (id)"
-                "ON DELETE NO ACTION ON UPDATE NO ACTION"
-                 ") ENGINE = InnoDB;")
         
+
+
+
+        query = """
+            CREATE table IF NOT EXISTS locality_uniqueness (
+            file_metadata_id BIGINT unsigned unique,
+            score DOUBLE NOT NULL,
+            PRIMARY KEY(file_metadata_id),
+            INDEX lu_score (score ASC),
+            CONSTRAINT fk_file_metadata11 FOREIGN KEY (file_metadata_id)
+            REFERENCES file_metadata (id)
+            ON DELETE NO ACTION ON UPDATE NO ACTION
+            ) ENGINE = InnoDB;
+        """
+
+
         cursor.execute(query)
         
         self.cnx.commit()
