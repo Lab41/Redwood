@@ -10,13 +10,15 @@ import sys
 import ConfigParser
 import MySQLdb
 import redwood.filters
+import redwood.helpers.core as core
 import redwood.connection.connect as rconn
+
 from redwood.shell.controller import SessionController
 
 
 def main(argv):
 
-    if(len(argv) != 1):
+    if(len(argv) != 1 and len(argv) != 2):
         print "Please provide database configuration file"
         sys.exit(1)
 
@@ -24,9 +26,13 @@ def main(argv):
 
     print "Establishing connection to database...\n",
     print "...running with {} cores".format(multiprocessing.cpu_count())
-    print "...loading filters from ./Filters directory if exists"
 
     cnx = rconn.connect_with_config(argv[0])
+
+
+    #import the filters
+    if(len(argv) == 2):
+        core.import_filters(argv[1], cnx)      
 
     sc = SessionController(cnx)
     sc.preloop()

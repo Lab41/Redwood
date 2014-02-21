@@ -61,6 +61,9 @@ def import_filters(path, cnx):
 
     new_filters = list()
 
+    
+    print "Importing specified filters from {}".format(path)
+
     #make sure path exists
     if os.path.isdir(path) is False:
         print "Error: path {} does not exist".format(path)
@@ -91,6 +94,8 @@ def import_filters(path, cnx):
                 instance.cnx = cnx
                 filter_list.append(instance)
                 new_filters.append(instance)
+
+    print new_filters
 
     return new_filters
 
