@@ -279,7 +279,6 @@ def get_reputation_by_source(cnx, source_name):
     cursor = cnx.cursor()
     result = list()
 
-    print "before: {}".format(source_name)
     try:
         cursor.execute("""SELECT ROUND(unique_file.reputation, 2), COUNT(DISTINCT unique_file.id) FROM unique_file
         INNER JOIN file_metadata

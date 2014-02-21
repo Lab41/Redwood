@@ -344,6 +344,9 @@ class LocalityUniqueness(RedwoodFilter):
         :num_clusters: specified number of clusters to use for kmeans (Default: 3)
         """
 
+
+        
+
         num_features = 2
         num_clusters = int(num_clusters)
         cursor = self.cnx.cursor()
@@ -377,6 +380,16 @@ class LocalityUniqueness(RedwoodFilter):
         if(len(sql_results) == 0):
             return
 
+
+
+        print "...Found {} files in specified directory".format(len(sql_results))
+        print "...Will form into {} clusters".format(num_clusters)
+        if num_clusters > len(sql_results):
+            print "Number of clusters ({}) exceeds number of files ({})".format(num_clusters, len(sql_results)) 
+            num_clusters = len(sql_results)
+            print "Number of clusters is now: {}".format(num_clusters)
+
+
         #zero out the array that will contain the inodes
         filesystem_id_arr = np.zeros((len(sql_results), num_features))
 
@@ -404,7 +417,12 @@ class LocalityUniqueness(RedwoodFilter):
         for dist_val, c, r in sorted_results:
             print "Dist: {} Cluster: {}  Data: {}".format(dist_val,c,r)
 
-        visual.visualize_scatter(d, code, whitened, codebook, 3, "inode number", "modification datetime", dir_name)
+       
+        if codebook is None or len(codebook) == 0:
+            print "Data is not suitable for visualization"
+            return
+
+        visual.visualize_scatter(d, code, whitened, codebook, num_clusters, "inode number", "modification datetime", dir_name)
 
 
     ##################################################

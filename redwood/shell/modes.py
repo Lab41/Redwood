@@ -49,7 +49,6 @@ class SubInterpreterDiscover(cmd.Cmd):
         if line:
             #line_a = self.cmdline.split()
             line_a = shlex.split(self.cmdline)
-            print "line a: {}".format(line_a)
             func_name = line_a[0]
             args = tuple(line_a[1:])
             self.plugin.run_func(func_name, *args)
@@ -105,7 +104,11 @@ class SubInterpreterFilter(cmd.Cmd):
         return True
 
     def do_discover(self, line):
-        '''[*] discover <filter-id>\n\t|- activates discover mode for the given filter-id\n\t|-[filter-id]  - id of filter'''
+        '''
+        discover <filter-id>
+        
+        activates discover mode for the given filter with id "filter-id"
+        '''
         if line:
             v = SubInterpreterFilter.validateFilterId(line)
             if v >= 0:
@@ -115,60 +118,53 @@ class SubInterpreterFilter(cmd.Cmd):
             print "Error: Filter Id required"
 
     def do_show_results(self, line):
-        '''[*] show_results <filter-id> <direction> <count> <source> <out>\n\t|- shows the results for the given filters score table\n\t|-[filter-id]  - id of filter\n\t|-[direction]  - top or bottom\n\t|-[count]      - items to display\n\t|-[source]     - source name\n\t|-[out]        - file to write output to'''
+        '''
+        show_results <filter-id> <direction> <count> <source> <out>
+        
+        shows the results for the given filter's score table
+        
+        filter-id   - id of filter
+        direction   - top or bottom
+        count       - items to display
+        source      - source name
+        out         - file to write output to (optional)
+        '''
         args = line.split()
-        if len(args) != 5:
+        if len(args) != 5 and len(args) != 4 :
             print "Error: incorrect number of arguments"
             return
         v = self.validateFilterId(args[0])
         plugin = filter_list[v]
-        plugin.show_results(args[1], args[2], args[3], args[4])
+        plugin.show_results(*args[1:])
 
-    def do_update(self, line):
-        '''update <filter-id> <source> <force?>'''
-        args = shlex.split(line)
-        if len(args) != 3:
-            print "Error: incorrect number of arguments"
-            return
-        v = self.validateFilterId(args[0])
-        if v < 0:
-            return
 
-        cursor = self.cnx.cursor()
-        query = "select * from media_source where name=\"{}\"".format(args[1])
-        cursor.execute(query)
-        r = cursor.fetchone()
-        if r is not None and args[2] != "Force":
-            print "Filters should have already been applied. Use the \"Force\" Luke, if you still want to run Update"
-            return
-        plugin = filter_list[v]
-        start_time = time.time()
-        plugin.update(args[1])
-        elapsed_time = time.time() - start_time
-        print "completed update of media source \"{}\" for filter \"{}\" in {} seconds".format(args[1], plugin.name, elapsed_time)
-
-    def do_rebuild(self, line):
-        '''[*] rebuild <filter-id>\n\t|-rebuilds all tables for the specified filter\n\t|-[filter-id]   - id of filter'''
+    def do_rerun(self, line):
+        '''
+        rerun <filter-id>
+        
+        Reruns a filter on all sources
+        '''
         args = line.split()
         if(len(args) != 1):
             print "Error: Filter Id required"
             return
-        v = self.validateFilterId(args[0])
-        if v<0:
-            return
-        plugin = filter_list[v]
-        plugin.rebuild()
-        print "completing analysis of data using filter \"{}\"".format(plugin.name)
-
-    def do_clean(self, line):
-        '''clean <filter-id>'''
-        args = line.split()
+        
         v = self.validateFilterId(args[0])
         if v < 0:
             return
         plugin = filter_list[v]
         plugin.clean()
-        print "all data deleted associated with filter \"{}\"".format(plugin.name)
+        
+        print "Deleting old data in filter storage"
+
+        sources = core.get_all_sources(self.cnx)
+       
+        print "Creating new data"
+        for src_info in sources:
+            print "Running filter on source: {}".format(src_info.source_name)
+            plugin.update(src_info.source_name)
+
+        print "Rerun complete"
 
     def do_list(self, line):
         '''list: lists the avialble filters'''
@@ -179,7 +175,21 @@ class SubInterpreterFilter(cmd.Cmd):
             i+=1
 
     def do_aggregate_scores(self, line):
-        '''[*] aggregate_scores (optional)<filter:weight>\n\t|- aggregates the reputations of all files using the list of filters and weights provided\n\t|- if no list is provided all filters are weighted equally\n\t|-[filter:weight]  - optional list of filter IDs and weights\n\t|- weights are a percentage and can range from 0-1 or 0-100'''
+        '''
+        aggregate_scores  filter_id:weight filter_id:weight ...
+        
+        Aggregates the reputations of all files using the list of filters and weights provided. If no list is
+        provided, all filters are weighted equally. The "filter_id" is the numeric id of the filter.  The "weight"
+        is a percentage between 0-100, such that the total of all specified weights is 100. 
+
+        For example, if you have 3 filters loaded, and you want to aggregate the scores such that the distribution of weights
+        is 50, 30, 20 respectively, then you would run the following command
+
+        Example
+
+        aggregate_scores 0:50 1:30 2:20
+        '''
+        
         print "Aggregating Scores"
         args = line.split()
         ag = Aggregator(self.cnx)

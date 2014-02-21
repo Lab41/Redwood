@@ -46,11 +46,15 @@ class SessionController(cmd.Cmd):
 
     def do_import_filters(self, line):
         '''[*] import_filters <path>\n\t|-[path]   - path to the directory containing the filters'''
-        print self.cnx
         new_filters = core.import_filters(line, self.cnx)
-        print "New Filters: "
-        print new_filters
-
+        
+        if new_filters is not None:
+            print "Importing the following filters: "
+            for f in new_filters:
+                print "{}".format(f.name)
+        else:
+            print "No filters found"
+            
     def do_load_csv(self, line):
         '''[*] load_csv <path> <include-survey>
             |-[path]   - path where csv files exist or a path to a csv file

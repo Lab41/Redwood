@@ -160,6 +160,7 @@ class FilterPrevalence(RedwoodFilter):
         of the specified OS
 
         :param os_name: name of the operating system
+        :param output: (optional) output filename. Note: A suffix of .png will be appended to the filename 
         """
        
         print '[+] Running \"Histogram by OS\"..."'
@@ -192,19 +193,20 @@ class FilterPrevalence(RedwoodFilter):
         ax.set_xlabel("Num of Systems")
         ax.set_ylabel("File Occurrences")    
         
-        #plt.xticks(bins)
-        
         if output is None:
             plt.show()
         else:
-            plt.savefig(output)
+            out = output + ".png"
+            print "Saving histogram to {}".format(out) 
+            plt.savefig(out)
 
     def discover_histogram_by_source(self, source_name, output=None):
         """
         Displays a histogram of the file distribution of a single source as it relates
         to all occurrences of that file across all systems
 
-        :param source_name: The name of the souce 
+        :param source_name: The name of the source 
+        :param output: (optional) output filename. Note: A suffix of .png will be appended to the filename
         """
 
         print '[+] Running \"Histogram by Source\"...'
@@ -243,19 +245,19 @@ class FilterPrevalence(RedwoodFilter):
         ax.set_xlabel("Num of Systems")
         ax.set_ylabel("File Occurrences")    
         
-        #plt.xticks(bins)
-       
         if output is None:
             plt.show()
         else:
-            plt.savefig(output)
+            out = output + ".png"
+            print "Saving histogram to {}".format(out)
+            plt.savefig(out)
 
-    def discover_detect_anomalies(self, source, out):
+    def discover_detect_anomalies(self, source, out=None):
         """
         Conducts an anomaly search on a given source
 
         :param source: source
-        :param out: output file
+        :param out: output file (optional)
         """
         
         cursor = self.cnx.cursor()
@@ -285,8 +287,16 @@ class FilterPrevalence(RedwoodFilter):
         cursor.execute(query)
 
         if out is None:
-            return cursor.fetchall()
+            results = cursor.fetchall()
+            if results is None or len(results) == 0:
+                print "No anomalies found"
+            else:
+                print "Showing top {} results".format(len(results))
+                for x in results:
+                    print x
+            return results
 
+        print "Writing results to {}".format(out)
 
         with open(out, "w") as f:
             v=0

@@ -77,11 +77,12 @@ class Report():
         ax.set_ylabel("File Occurrences")  
 
         threshold = None
+        #TODO: if you have a truth source, use it here
         #if you have a validation engine, use the line below
         #threshold = core.get_malware_reputation_threshold(self.cnx)
-        print "thres: {}".format(threshold) 
-        if threshold is not None:
-            plt.axvline(x=threshold, color="r", ls='--')
+        #print "thres: {}".format(threshold) 
+        #if threshold is not None:
+        #    plt.axvline(x=threshold, color="r", ls='--')
         #plt.xticks(bins)
         
         #for tick in ax.xaxis.get_major_ticks():

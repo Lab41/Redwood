@@ -21,44 +21,40 @@ Created on 19 October 2013
 """
 
 
-#import re
-#from redwood.filters import redwood_filter
-
 class Aggregator():
     
     def __init__(self, cnx):
         self.cnx = cnx
 
 
-    #should come in as a:x, b:y, c:z, etc, where x+y+z = 100, and a-c are filter ids
-    #standard aggregate is equally weighted
     def aggregate(self, filter_list, dist_str=None):
+        '''
+        should come in as a:x, b:y, c:z, etc, where x+y+z = 100, and a-c are filter ids
+        standard aggregate is equally weighted
+        '''
+
         weights = list()
-        filters = list()
+        #TODO: make the dup_list a dict
+        dup_list = list()
 
         if not dist_str is None:
-            if len(dist_str) > len(filter_list):
-                print ("Error there are only " + str(len(filter_list)) + 
-                " filters, you supplied weights for " + str(len(dist_str)))
+            if len(dist_str) != len(filter_list):
+                print "The number of loaded filters ({}) does not equal the number of provided weights ({})".format(len(filter_list), len(dist_str))
                 return
             try:
                 for s in dist_str:
                     p = s.split(':')
                     filter_id = int(p[0])
-                    if filter_id in filters:
-                        print ("Error mutliple values entered for filter " + 
-                        str(filter_id))
-                        return
-                    filters.append(filter_id)
                     percent = float(p[1])
-                    if percent > 1:
-                        percent = percent / float(100)
-                    weights.append((filter_id, percent))
-                total = 0
-                for w in weights:
-                    total += w[1]
-                if total != 1.0:
-                    print "The filter weights must total 1 or 100"
+                    
+                    if filter_id in dup_list:
+                        print "Error: Mutliple weights entered for filter with id {}".format(filter_id)
+                        return
+                    dup_list.append(filter_id)
+                    weights.append((filter_id, percent / float(100)))
+               
+                if sum([w[1] for w in weights]) != 1:
+                    print "The filter weights must total 100"
                     return
             except:
                 print "There was an error with your sytax, try again"
@@ -70,30 +66,24 @@ class Aggregator():
                 weights.append((i, even_split))
                 i += 1
 
-        #query = """
-        #UPDATE unique_file  
-        #LEFT JOIN fp_scores ON fp_scores.id = unique_file.id
-        #LEFT JOIN lu_scores ON lu_scores.id = unique_file.id
-        #SET unique_file.reputation = (.5 * fp_scores.score + .5 * lu_scores.score)
-        #"""
-        
         query = "UPDATE unique_file\n"
+
+        #now create the query
 
         for w in weights:
             fltr = filter_list[w[0]]
-            print fltr.name + " Weight " + str(w[1])
+            print "{} weight -> {}".format(fltr.name, w[1])
             query += "LEFT JOIN " + fltr.score_table + " ON " + fltr.score_table + ".id = unique_file.id\n"
             
         query += "SET unique_file.reputation = ("
         
-        for w in weights:
-            fltr = filter_list[w[0]]
-	    score = w[1]
-            query += str(w[1]) + " * " + fltr.score_table + ".score + "
-            
+        for filter_id, weight in weights:
+            fltr = filter_list[filter_id]
+            query += "{} * {}.score + ".format(weight, fltr.score_table)
+        
+        #remove the last +
         query = query[0:len(query)-3]
         query += ")"
-        #print query
         cursor = self.cnx.cursor()
         cursor.execute(query)
         self.cnx.commit()

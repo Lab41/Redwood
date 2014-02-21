@@ -111,8 +111,10 @@ class FileNameFilter(RedwoodFilter):
         """usage: unique_names source_name"""
 
         data = self.get_unique_names(source)
-        for (file, dir) in data:
-            print "Unique file %s %s" % (file, dir)
+        
+        if data is not None:
+            for (file, dir) in data:
+                print "Unique file %s %s" % (file, dir)
         
 
     def get_unique_names(self, source):
