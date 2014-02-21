@@ -160,7 +160,7 @@ class FilterPrevalence(RedwoodFilter):
         of the specified OS
 
         :param os_name: name of the operating system
-        :param output: (optional) output filename. Note: A suffix of .png will be appended to the filename 
+        :param output: (optional) output filename in PNG format 
         """
        
         print '[+] Running \"Histogram by OS\"..."'
@@ -196,9 +196,8 @@ class FilterPrevalence(RedwoodFilter):
         if output is None:
             plt.show()
         else:
-            out = output + ".png"
-            print "Saving histogram to {}".format(out) 
-            plt.savefig(out)
+            print "Saving histogram to {}".format(output) 
+            plt.savefig(output)
 
     def discover_histogram_by_source(self, source_name, output=None):
         """
@@ -206,7 +205,7 @@ class FilterPrevalence(RedwoodFilter):
         to all occurrences of that file across all systems
 
         :param source_name: The name of the source 
-        :param output: (optional) output filename. Note: A suffix of .png will be appended to the filename
+        :param output: (optional) output filename in PNG format
         """
 
         print '[+] Running \"Histogram by Source\"...'
@@ -248,9 +247,8 @@ class FilterPrevalence(RedwoodFilter):
         if output is None:
             plt.show()
         else:
-            out = output + ".png"
-            print "Saving histogram to {}".format(out)
-            plt.savefig(out)
+            print "Saving histogram to {}".format(output)
+            plt.savefig(output)
 
     def discover_detect_anomalies(self, source, out=None):
         """
