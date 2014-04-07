@@ -50,16 +50,16 @@ class Report():
         for f in filter_list:
             f.cnx = self.cnx
         print f.name
-            path = f.run_survey(self.source.source_name)
-            try:
-                shutil.rmtree(self.report_dir + "/" + self.source.source_name + "/filters/" + f.name)
-            except:
-                pass
+        path = f.run_survey(self.source.source_name)
+        try:
+            shutil.rmtree(self.report_dir + "/" + self.source.source_name + "/filters/" + f.name)
+        except:
+            pass
 
         if path == None:
-        continue
+            continue
 
-            shutil.move(path, self.report_dir + "/" + self.source.source_name + "/filters/" + f.name)
+        shutil.move(path, self.report_dir + "/" + self.source.source_name + "/filters/" + f.name)
 
     def generate_report(self):
         report_dir = "reports/" + self.source.source_name
