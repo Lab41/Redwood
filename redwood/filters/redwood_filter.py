@@ -100,24 +100,7 @@ class RedwoodFilter(object):
             ORDER BY {}.score {} LIMIT 0, {}
         """.format(self.score_table, self.score_table, self.score_table, source, self.score_table, dir_val, count)
 
-        cursor.execute("""
-                       SELECT %s.score, unique_path.full_path, file_metadata.file_name
-                       FROM %s LEFT JOIN file_metadata
-                       ON %s.id = file_metadata.unique_file_id
-                       LEFT JOIN unique_path
-                       ON file_metadata.unique_path_id = unique_path.id
-                       WHERE file_metadata.source_id =
-                       (SELECT media_source.id
-                        FROM media_source
-                        WHERE media_source.name = %s)
-                       ORDER BY %s.score %s LIMIT 0, %s
-                       """, (self.score_table,
-                             self.score_table,
-                             self.score_table,
-                             source,
-                             self.score_table,
-                             dir_val,
-                             count,))
+        cursor.execute(query)
 
         if out is None:
             results = cursor.fetchall()
