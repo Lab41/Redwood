@@ -41,16 +41,16 @@ def db_load_file(connection, path):
 
     :param connection: connection object for the database
     :param path: path where the file is located
-    
+
     :return SourceInfo representing the inputted source
     """
-    
+
     try:
         with open(path): pass
     except IOError:
         print '*** Error: File \'{}\' does not exist'.format(path)
         return
-    
+
 
     filename = os.path.basename(path)
     fields = string.split(filename, '--')
@@ -60,7 +60,7 @@ def db_load_file(connection, path):
         print path
         print fields
         return
-    
+
     cursor = connection.cursor()
     os_id = None
 
@@ -75,20 +75,20 @@ def db_load_file(connection, path):
             'name':os_name,
         }
 
-        #add os 
+        #add os
         add_os = ("INSERT INTO `os` (name) VALUES('%(name)s') ON DUPLICATE KEY UPDATE id=id") % data_os
         cursor.execute(add_os)
         connection.commit()
-        
+
     except MySQLdb.Error, e:
         if connection:
-            connection.rollback()                       
+            connection.rollback()
             print "*** Error %d: %s" % (e.args[0],e.args[1])
-            return                                        
+            return
 
     #now get the os_id for the os_name
-    query = "SELECT os.id FROM os WHERE os.name = \"{}\"".format(os_name)
-    cursor.execute(query)
+    #query = "SELECT os.id FROM os WHERE os.name = \"{}\"".format(os_name)
+    cursor.execute("""SELECT os.id FROM os WHERE os.name = %s""", (os_name,))
     r = cursor.fetchone()
     os_id = r[0]
 
@@ -109,34 +109,34 @@ def db_load_file(connection, path):
         #add the media source
         add_media_source = ("INSERT INTO `media_source` (reputation, name, date_acquired, os_id) "
                             "VALUES(0, '%(name)s', '%(date_acquired)s', '%(os_id)s') ") % data_media_source
-        
+
         cursor.execute(add_media_source)
         connection.commit()
         source_id = cursor.lastrowid
 
     except MySQLdb.Error, e:
         if connection:
-            connection.rollback()                       
+            connection.rollback()
             print "*** Error %d: %s" % (e.args[0],e.args[1])
-            return                                        
+            return
 
     media_source_id = cursor.lastrowid
-    
+
     path = path.replace('\\','\\\\')
     #load raw csv into the staging table from the client
-    add_staging_table = ("""LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table`
-                         FIELDS TERMINATED BY ','  ENCLOSED BY '\"' LINES TERMINATED BY '\\n'
-                         IGNORE 1 LINES
-                         (global_file_id, parent_id, dirname, basename,contents_hash,dirname_hash,filesystem_id,device_id,
-                         attributes,user_owner,group_owner,size,@created_param,@accessed_param,@modified_param,@changed_param,
-                         @user_flags,links_to_file, @disk_offset, @entropy, @file_content_status, @extension, file_type) 
-                         SET created = FROM_UNIXTIME(@created_param), 
-			 last_accessed = FROM_UNIXTIME(@accessed_param),
-                         last_modified = FROM_UNIXTIME(@modified_param), 
-			 last_changed = FROM_UNIXTIME(@changed_param),
-                         user_flags = nullif(@user_flags,''), disk_offset = nullif(@disk_offset,''),
-                         entropy=nullif(@entropy,''), file_content_status=nullif(@file_content_status,''),
-                         extension = nullif(@extension,'');""").format(path) 
+    #add_staging_table = ("""LOAD DATA LOCAL INFILE '{}' INTO TABLE `staging_table`
+    #                     FIELDS TERMINATED BY ','  ENCLOSED BY '\"' LINES TERMINATED BY '\\n'
+    #                     IGNORE 1 LINES
+    #                     (global_file_id, parent_id, dirname, basename,contents_hash,dirname_hash,filesystem_id,device_id,
+    #                     attributes,user_owner,group_owner,size,@created_param,@accessed_param,@modified_param,@changed_param,
+    #                     @user_flags,links_to_file, @disk_offset, @entropy, @file_content_status, @extension, file_type)
+    #                     SET created = FROM_UNIXTIME(@created_param),
+    #         last_accessed = FROM_UNIXTIME(@accessed_param),
+    #                     last_modified = FROM_UNIXTIME(@modified_param),
+    #         last_changed = FROM_UNIXTIME(@changed_param),
+    #                     user_flags = nullif(@user_flags,''), disk_offset = nullif(@disk_offset,''),
+    #                     entropy=nullif(@entropy,''), file_content_status=nullif(@file_content_status,''),
+    #                     extension = nullif(@extension,'');""").format(path)
 
     try:
 
@@ -170,16 +170,32 @@ def db_load_file(connection, path):
             INDEX dirname_hash_idx (dirname_hash ASC)
             )  ENGINE=InnoDB;
         """
-        
+
         cursor.execute(query)
         connection.commit()
 
         start_time = time.time()
-        cursor.execute(add_staging_table)
-        connection.commit() 
+        cursor.execute("""
+                       LOAD DATA LOCAL INFILE %s INTO TABLE `staging_table`
+                       FIELDS TERMINATED BY ',' 
+                       ENCLOSED BY '\"' LINES TERMINATED BY '\\n'
+                       IGNORE 1 LINES
+                       (global_file_id, parent_id, dirname, basename,contents_hash,dirname_hash,filesystem_id,device_id,
+                        attributes,user_owner,group_owner,size,@created_param,@accessed_param,@modified_param,@changed_param,
+                        @user_flags,links_to_file, @disk_offset, @entropy, @file_content_status, @extension, file_type)
+                       SET created = FROM_UNIXTIME(@created_param),
+                       last_accessed = FROM_UNIXTIME(@accessed_param),
+                       last_modified = FROM_UNIXTIME(@modified_param),
+                       last_changed = FROM_UNIXTIME(@changed_param),
+                       user_flags = nullif(@user_flags,''),
+                       disk_offset = nullif(@disk_offset,''),
+                       entropy=nullif(@entropy,''),
+                       file_content_status=nullif(@file_content_status,''),
+                       extension = nullif(@extension,'');""", (path,))
+        connection.commit()
         print "...data transfer to staging table in {}".format(time.time() - start_time)
         start_time = time.time()
-        
+
         cursor.callproc('map_staging_table', (media_source_id, os_id))
         cursor.execute("DROP TABLE `staging_table`;")
         connection.commit()
@@ -188,7 +204,7 @@ def db_load_file(connection, path):
         print "Exception occurred: {}".format(err)
         cursor.close()
         sys.exit(1)
-    
+
     total_time =  time.time() - start_time
     print "...completed in {}".format(total_time)
     cursor.close()
@@ -207,7 +223,7 @@ def run(cnx, path):
     if(path == None):
         print "*** Error: Path is required"
         return
-    
+
     if(os.path.isfile(path)):
         info =  db_load_file(cnx, path)
         if info is not None:
@@ -229,5 +245,3 @@ def run(cnx, path):
     #update the analyzers and filters
     core.update_analyzers(cnx,src_os_list)
     core.update_filters(cnx, src_os_list)
-
-

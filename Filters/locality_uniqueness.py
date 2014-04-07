@@ -61,7 +61,7 @@ def find_anomalies(rows, sorted_results, code_count_dict):
     distance_threshold1 = 2.0
     distance_threshold2 = 5.0
     distance_threshold3 = 10.0
-    
+
     #assign scores based on distance 
     for c, d, r in sorted_results:
 
@@ -96,66 +96,66 @@ def do_eval(rows, full_path, files, num_clusters, num_features):
     :param files: meta data for files in the directory
     :param num_clusters: number of clusters to specify for kmeans
     :param num_features: number of features included
-    
+
     :return: nothing... use the rows input as an output to append to
     """
-    
+
     num_obs = len(files)
-  
+
     #if the number of observations is less than the num_clusters we do not cluster
     #but rather give each file SMALL CULSTER SCORE
     if(num_obs < num_clusters):
         for f in files:
             rows.put((f[0], SMALL_CLUSTERS_SCORE))
         return
- 
+
     #zero out the two dimensional array
     observations = np.zeros((num_obs, num_features))
 
     i = 0
-   
+
     #transfer the observations to the numpy array
     for file_metadata_id,mod_date,full_path,file_name,inode,parent_id, in files:
         seconds = calendar.timegm(mod_date.utctimetuple())
         observations[i] = (inode, seconds)
         i += 1
-   
+
     #normalize the observations
-    whitened = whiten(observations) 
+    whitened = whiten(observations)
 
     #get the centroids (aka codebook)
     codebook,_ = kmeans(whitened, num_clusters)
-   
+
     #sometimes if all observations for a given feature are the same
     #the centroids will not be found. In that case we give a neutral score
     if len(codebook) != num_clusters:
         for f in files:
-            rows.put((f[0], .5)) 
+            rows.put((f[0], .5))
         return
 
     #calulate the distances
     code, dist = vq(whitened, codebook)
-    
-    
+
+
     d = defaultdict(int)
 
-    #quick way to get count of cluster sizes        
+    #quick way to get count of cluster sizes
     for c in code:
         d[c] += 1
 
     #combine the results with the original data, then sort by the code
     combined = zip(code, dist, files)
     sorted_results =  sorted(combined, key=lambda tup: tup[0])
-   
-    find_anomalies(rows, sorted_results, d) 
-             
+
+    find_anomalies(rows, sorted_results, d)
+
 
 
 
 class LocalityUniqueness(RedwoodFilter):
     """
-    LocalityUniqueness seeks to identify anomalies through clustering of file features in a given directory. The 
-    assumption is that files of interest are those that are different than most of their neighbors in a given 
+    LocalityUniqueness seeks to identify anomalies through clustering of file features in a given directory. The
+    assumption is that files of interest are those that are different than most of their neighbors in a given
     domain -- this case being the directory.  As a result, this filter is responsible for giving outliers of clusters
     lower reputation scores than those files closer to the centroid
     """
@@ -164,7 +164,7 @@ class LocalityUniqueness(RedwoodFilter):
         self.score_table = "lu_scores"
         self.name = "Locality_Uniqueness"
         self.cnx = cnx
-    
+
     def usage(self):
         """
         Prints the usage statements for the discovery functions
@@ -179,7 +179,7 @@ class LocalityUniqueness(RedwoodFilter):
         """
         Applies the Locality Uniqueness filter to the given source, updating existing data
         analyzed from previous sources. Currently the update function uses 3 clusters for clustering
-        analysis.  This will be dynamic in future versions. 
+        analysis.  This will be dynamic in future versions.
 
         :param source: media source name
         """
@@ -198,17 +198,21 @@ class LocalityUniqueness(RedwoodFilter):
         """
 
         cursor = self.cnx.cursor()
-        src_info = core.get_source_info(self.cnx, source_name)        
+        src_info = core.get_source_info(self.cnx, source_name)
 
         #returns all files sorted by directory for the given source
-        query = """
-            SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash 
-            FROM joined_file_metadata 
-            where source_id = {} order by parent_id asc
-            """.format(src_info.source_id)
-       
-        cursor.execute(query)
-       
+        #query = """
+        #    SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash
+        #    FROM joined_file_metadata
+        #    where source_id = {} order by parent_id asc
+        #    """.format(src_info.source_id)
+
+        cursor.execute("""
+                       SELECT file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash
+                       FROM joined_file_metadata
+                       where source_id = %s order by parent_id asc
+                       """, (src_info.source_id,))
+
         files = list()
 
         print "...Beginning clustering analysis"
@@ -216,34 +220,34 @@ class LocalityUniqueness(RedwoodFilter):
         manager = Manager()
         rows = manager.Queue()
         is_first = True
-        
+
         parent_id_prev = None
         #should iterate by dir of a given source at this point
         for(file_metadata_id, last_modified, full_path, file_name, filesystem_id, parent_id, hash_val) in cursor:
-            
+
             if is_first is True:
                 is_first = False
                 parent_id_prev = parent_id
 
             #if parent_id is diff than previous, we are in new directory, so pack it up for analysis
             if parent_id_prev != parent_id:
-                
+
                 parent_id_prev = parent_id
-                
+
                 if len(files) > 0:
                     pool.apply_async(do_eval, [rows, full_path, files, num_clusters, 2])
                     files = list()
-            
-            #make sure to omit directories from the clustering analy               
+
+            #make sure to omit directories from the clustering analy
             if file_name != '/' and hash_val != "":
                 files.append((file_metadata_id, last_modified, full_path,file_name, filesystem_id, parent_id))
-       
+
         if len(files) > 0:
             pool.apply_async(do_eval, [rows, full_path, files, num_clusters, 2])
 
         pool.close()
         pool.join() 
-         
+
         input_rows = []
         count = 0
         while rows.empty() is False:
@@ -256,34 +260,34 @@ class LocalityUniqueness(RedwoodFilter):
                 input_rows = []
                 count=0
         print "...sending {} results to server".format(len(input_rows))
-        
+
         cursor.executemany("""REPLACE INTO locality_uniqueness(file_metadata_id, score) values(%s, %s)""", input_rows)
         self.cnx.commit()
         #need to drop the lu_scores and recalculate
         cursor.execute("drop table if exists lu_scores")
-        
+
         query = ("""CREATE TABLE IF NOT EXISTS `lu_scores` (
                 `id` bigint(20) unsigned NOT NULL,
                 `score` double DEFAULT NULL,
                 KEY `fk_unique_file0_id` (`id`),
-                CONSTRAINT `fk_unique_file0_id` FOREIGN KEY (`id`) 
+                CONSTRAINT `fk_unique_file0_id` FOREIGN KEY (`id`)
                 REFERENCES `unique_file` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
                         ) ENGINE=InnoDB""")
 
-        cursor.execute(query) 
+        cursor.execute(query)
 
         print "...updating scores on the server"
         query = """
             INSERT INTO lu_scores
-            (SELECT file_metadata.unique_file_id, avg(locality_uniqueness.score) FROM 
-            locality_uniqueness LEFT JOIN file_metadata on (locality_uniqueness.file_metadata_id = file_metadata.id) 
+            (SELECT file_metadata.unique_file_id, avg(locality_uniqueness.score) FROM
+            locality_uniqueness LEFT JOIN file_metadata on (locality_uniqueness.file_metadata_id = file_metadata.id)
             WHERE file_metadata.unique_file_id is not null
             GROUP BY file_metadata.unique_file_id)
             """
-                               
+
         cursor.execute(query)
         self.cnx.commit()
-        
+
 
     def clean(self):
         """
@@ -301,9 +305,6 @@ class LocalityUniqueness(RedwoodFilter):
         Build all persistent tables associated with this filter
         """
         cursor = self.cnx.cursor()
-        
-
-
 
         query = """
             CREATE table IF NOT EXISTS locality_uniqueness (
@@ -317,13 +318,9 @@ class LocalityUniqueness(RedwoodFilter):
             ) ENGINE = InnoDB;
         """
 
-
         cursor.execute(query)
-        
+
         self.cnx.commit()
-    
-
-
 
     ##################################################
     #
@@ -334,7 +331,7 @@ class LocalityUniqueness(RedwoodFilter):
     def discover_evaluate_dir(self, dir_name, source, num_clusters=DEFAULT_NUM_CLUSTERS):
         """
         Discovery function that applies kmeans clustering to a specified directory, displays
-        the resulting scatter plot with the clusters, and then prints out an ordered list of 
+        the resulting scatter plot with the clusters, and then prints out an ordered list of
         the file by the distance from their respective centroid. Currently,
         this function uses two static features of "modification date" and "inode number" but
         future versions will allow for dynamic features inputs.
@@ -344,48 +341,45 @@ class LocalityUniqueness(RedwoodFilter):
         :num_clusters: specified number of clusters to use for kmeans (Default: 3)
         """
 
-
-        
-
         num_features = 2
         num_clusters = int(num_clusters)
         cursor = self.cnx.cursor()
-        
+
         if(dir_name.endswith('/')):
             dir_name = dir_name[:-1]
 
         print "...Running discovery function on source {} at directory {}".format(source, dir_name)
-        
+
         src_info = core.get_source_info(self.cnx, source)
         if src_info is None:
             print "Error: Source {} does not exist".format(source)
             return
 
-        
-
         #grab all files for a particular directory from a specific source
         hash_val = sha1(dir_name).hexdigest()
-        
-        query = """
-            SELECT file_name, file_metadata_id, filesystem_id, last_modified
-            FROM joined_file_metadata
-            WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'
-            """.format(src_info.source_id, hash_val)
 
-        cursor.execute(query)
+        #query = """
+        #    SELECT file_name, file_metadata_id, filesystem_id, last_modified
+        #    FROM joined_file_metadata
+        #    WHERE source_id ='{}' AND path_hash = '{}' AND file_name !='/'
+        #    """.format(src_info.source_id, hash_val)
+
+        cursor.execute("""
+                       SELECT file_name, file_metadata_id, filesystem_id, last_modified
+                       FROM joined_file_metadata
+                       WHERE source_id = %s AND path_hash = %s AND file_name !='/'
+                       """, (src_info.source_id, hash_val,))
 
         #bring all results into memory
         sql_results = cursor.fetchall()
-      
+
         if(len(sql_results) == 0):
             return
-
-
 
         print "...Found {} files in specified directory".format(len(sql_results))
         print "...Will form into {} clusters".format(num_clusters)
         if num_clusters > len(sql_results):
-            print "Number of clusters ({}) exceeds number of files ({})".format(num_clusters, len(sql_results)) 
+            print "Number of clusters ({}) exceeds number of files ({})".format(num_clusters, len(sql_results))
             num_clusters = len(sql_results)
             print "Number of clusters is now: {}".format(num_clusters)
 
@@ -398,16 +392,16 @@ class LocalityUniqueness(RedwoodFilter):
             seconds = calendar.timegm(mod_date.utctimetuple())
             filesystem_id_arr[i] = (inode, seconds)
             i += 1
-        whitened = whiten(filesystem_id_arr) 
+        whitened = whiten(filesystem_id_arr)
         #get the centroids
         codebook,_ = kmeans(whitened, num_clusters)
         code, dist = vq(whitened, codebook)
         d = defaultdict(int)
 
-        #quick way to get count of cluster sizes        
+        #quick way to get count of cluster sizes
         for c in code:
             d[c] += 1
-      
+
         #sorts the codes and sql_results together as pairs
         combined = zip(dist, code, sql_results)
 
@@ -417,7 +411,7 @@ class LocalityUniqueness(RedwoodFilter):
         for dist_val, c, r in sorted_results:
             print "Dist: {} Cluster: {}  Data: {}".format(dist_val,c,r)
 
-       
+
         if codebook is None or len(codebook) == 0:
             print "Data is not suitable for visualization"
             return
@@ -447,7 +441,7 @@ class LocalityUniqueness(RedwoodFilter):
 
         resource_dir = os.path.join(survey_dir, resources) 
         html_file = os.path.join(survey_dir, survey_file)
-        
+
         try:
             shutil.rmtree(survey_dir)
         except:
@@ -455,7 +449,7 @@ class LocalityUniqueness(RedwoodFilter):
 
         os.mkdir(survey_dir)
         os.mkdir(resource_dir)
-        
+
         results = self.show_results("bottom", 100, source_name, None)
 
         with open(html_file, 'w') as f:
@@ -466,7 +460,7 @@ class LocalityUniqueness(RedwoodFilter):
             <link href="../../../resources/css/style.css" rel="stylesheet" type="text/css">
             </head>
             <body>
-            <h2 class="redwood-title">Locality Uniqueness Snapshot</h2> 
+            <h2 class="redwood-title">Locality Uniqueness Snapshot</h2>
             """)
             f.write("<h3 class=\"redwood-header\">The lowest 100 reputations for this filter</h3>")
             f.write("<table border=\"1\" id=\"redwood-table\">")
@@ -482,7 +476,7 @@ class LocalityUniqueness(RedwoodFilter):
                 else:
                     f.write("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(r[0], r[1], r[2]))
                 i += 1
-            f.write("</table>") 
-            
+            f.write("</table>")
+
             f.write("</body></html>")
             return survey_dir

@@ -29,16 +29,16 @@ import matplotlib.pylab as plt
 from redwood.foundation.aggregator import Aggregator
 
 
-class Report():  
+class Report():
     def __init__(self, cnx, source_info):
-        self.report_dir = "reports"          
+        self.report_dir = "reports"
         self.cnx = cnx
         self.source = source_info
-        
+
     def run(self, agg_weights=None):
-        
+
         print "Running report survey for: " + self.source.source_name
-        print "... aggregating most recent filter scores" 
+        print "... aggregating most recent filter scores"
         ag = Aggregator(self.cnx)
         ag.aggregate(filter_list, agg_weights)
         self.run_filter_survey()
@@ -49,18 +49,18 @@ class Report():
         print "...Generating Report"
         for f in filter_list:
             f.cnx = self.cnx
-	    print f.name
+        print f.name
             path = f.run_survey(self.source.source_name)
             try:
                 shutil.rmtree(self.report_dir + "/" + self.source.source_name + "/filters/" + f.name)
             except:
                 pass
-	    
-	    if path == None:
-		continue
+
+        if path == None:
+        continue
 
             shutil.move(path, self.report_dir + "/" + self.source.source_name + "/filters/" + f.name)
-        
+
     def generate_report(self):
         report_dir = "reports/" + self.source.source_name
         report_file = self.source.source_name + "_report.html"
@@ -74,24 +74,24 @@ class Report():
         ax = fig.add_subplot(111, title="Reputation Distribution")
         ax.hist(scores, weights=counts, bins = bins)
         ax.set_xlabel("Reputation Score")
-        ax.set_ylabel("File Occurrences")  
+        ax.set_ylabel("File Occurrences")
 
         threshold = None
         #TODO: if you have a truth source, use it here
         #if you have a validation engine, use the line below
         #threshold = core.get_malware_reputation_threshold(self.cnx)
-        #print "thres: {}".format(threshold) 
+        #print "thres: {}".format(threshold)
         #if threshold is not None:
         #    plt.axvline(x=threshold, color="r", ls='--')
         #plt.xticks(bins)
-        
+
         #for tick in ax.xaxis.get_major_ticks():
         #    tick.label.set_fontsize(8)
 
         hist_reputation = os.path.join(report_dir, "rep.png")
-        plt.savefig(hist_reputation) 
+        plt.savefig(hist_reputation)
 
-       
+
         table_height = int(math.ceil(len(score_counts) / float(3)))
         file_count = 0
         for s in score_counts:
@@ -112,7 +112,7 @@ class Report():
                     filter_survey = os.path.join("filters/" + d, "survey.html")
                     f.write("""
                     <li><a class="button" href=\"{}\">{}</a></dt>
-		    """.format(filter_survey, d))
+            """.format(filter_survey, d))
             f.write("""
                 </ul>
             </div>
@@ -123,7 +123,7 @@ class Report():
             f.write("\t\t\t<dt>Acquisition Date: {}</dt>\n".format(self.source.date_acquired))
             f.write("\t\t\t<dt>Operating System: {}</dt>\n".format(self.source.os_name))
             f.write("\t\t\t<dt>File Count: {}</dt>\n".format(file_count))
-            f.write("\t\t</dl>\n\t\t</div>\n")            
+            f.write("\t\t</dl>\n\t\t</div>\n")
             f.write("\t\t<div id=\"content\">\n")
             f.write("\t\t<table border=\"1\" id=\"redwood-table\">\n")
             f.write("\t\t\t<caption class=\"caption\">File Score Distribution</caption>\n")
@@ -227,10 +227,10 @@ class Report():
                 ON file_metadata.unique_file_id = unique_file.id
                 INNER JOIN unique_path
                 ON file_metadata.unique_path_id = unique_path.id
-                WHERE source_id = {}
+                WHERE source_id = %s
                 ORDER BY unique_file.reputation ASC
                 LIMIT 0, 100
-                """.format(self.source.source_id))
+                """, (self.source.source_id,))
             col_length = len(cursor.description)
             field_names = cursor.description
             results = cursor.fetchall()

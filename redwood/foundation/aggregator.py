@@ -22,7 +22,7 @@ Created on 19 October 2013
 
 
 class Aggregator():
-    
+
     def __init__(self, cnx):
         self.cnx = cnx
 
@@ -46,13 +46,13 @@ class Aggregator():
                     p = s.split(':')
                     filter_id = int(p[0])
                     percent = float(p[1])
-                    
+
                     if filter_id in dup_list:
                         print "Error: Mutliple weights entered for filter with id {}".format(filter_id)
                         return
                     dup_list.append(filter_id)
                     weights.append((filter_id, percent / float(100)))
-               
+
                 if sum([w[1] for w in weights]) != 1:
                     print "The filter weights must total 100"
                     return
@@ -74,13 +74,13 @@ class Aggregator():
             fltr = filter_list[w[0]]
             print "{} weight -> {}".format(fltr.name, w[1])
             query += "LEFT JOIN " + fltr.score_table + " ON " + fltr.score_table + ".id = unique_file.id\n"
-            
+
         query += "SET unique_file.reputation = ("
-        
+
         for filter_id, weight in weights:
             fltr = filter_list[filter_id]
             query += "{} * {}.score + ".format(weight, fltr.score_table)
-        
+
         #remove the last +
         query = query[0:len(query)-3]
         query += ")"

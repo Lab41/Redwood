@@ -30,11 +30,11 @@ class FileNameFilter(RedwoodFilter):
             id BIGINT unsigned NOT NULL,
             score double DEFAULT NULL,
             PRIMARY KEY(id),
-            CONSTRAINT `FNF_unique_file1_id` FOREIGN KEY (`id`) 
+            CONSTRAINT `FNF_unique_file1_id` FOREIGN KEY (`id`)
             REFERENCES `unique_file` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
              ) ENGINE=InnoDB
         """
-        cursor.execute(query)   
+        cursor.execute(query)
         self.cnx.commit()
 
         query = """
@@ -48,7 +48,7 @@ class FileNameFilter(RedwoodFilter):
             INDEX file_name_idx USING BTREE (file_name ASC)
         )  ENGINE=InnoDB;
         """
-        cursor.execute(query)   
+        cursor.execute(query)
         self.cnx.commit()
         cursor.close()
 
@@ -59,49 +59,67 @@ class FileNameFilter(RedwoodFilter):
         self.build()
 
         cursor = self.cnx.cursor()
-        
+
         src_info = core.get_source_info(self.cnx, source)
-        
+
         if src_info is None:
             print "Error: Source {} not found".format(source)
             return
-            
+
         now = time.time()
 
-#        self.cnx.autocommit(False)
-        query = """
-            INSERT INTO FileNameFilter_unique_name 
-                (file_name, unique_path_id) 
-                (SELECT file_name, unique_path_id FROM file_metadata WHERE file_name != "/" and source_id = {})
-            ON DUPLICATE KEY UPDATE count = count + 1;
-        """.format(src_info.source_id)
-        cursor.execute(query)
-#        self.cnx.autocommit(True)
-        
+        # self.cnx.autocommit(False)
+        #query = """
+        #    INSERT INTO FileNameFilter_unique_name
+        #        (file_name, unique_path_id)
+        #        (SELECT file_name, unique_path_id FROM file_metadata WHERE file_name != "/" and source_id = {})
+        #    ON DUPLICATE KEY UPDATE count = count + 1;
+        #""".format(src_info.source_id)
+        cursor.execute("""
+                       INSERT INTO FileNameFilter_unique_name
+                       (file_name, unique_path_id)
+                       (SELECT file_name, unique_path_id
+                        FROM file_metadata
+                        WHERE file_name != "/" and source_id = %s)
+                       ON DUPLICATE KEY UPDATE count = count + 1;
+                       """, (src_info.source_id,))
+        # self.cnx.autocommit(True)
+
         later = time.time()
-        
+
         #print "Updated counts in {} secs\nUpdating Scores".format(later - now)
 
         cursor.execute("SELECT MAX(count) FROM FileNameFilter_unique_name")
         (max_count,) = cursor.fetchone()
-        
+
         now = time.time()
-        query = """
-            INSERT INTO FileNameFilter_scores
-                (id, score) 
-                (
-                    SELECT
-                        fm.unique_file_id, MIN(fnfun.count / {})
-                    FROM FileNameFilter_unique_name fnfun
-                    LEFT JOIN file_metadata fm 
+        #query = """
+        #    INSERT INTO FileNameFilter_scores
+        #        (id, score)
+        #        (
+        #            SELECT
+        #                fm.unique_file_id, MIN(fnfun.count / {})
+        #            FROM FileNameFilter_unique_name fnfun
+        #            LEFT JOIN file_metadata fm
+        #                ON fnfun.file_name = fm.file_name
+        #                AND fnfun.unique_path_id = fm.unique_path_id
+        #            WHERE not isnull(fm.unique_file_id)
+        #            GROUP BY fm.unique_file_id
+        #        )
+        #    ON DUPLICATE KEY UPDATE score = score
+        #    """.format(max_count)
+        cursor.execute("""
+                       INSERT INTO FileNameFilter_scores
+                       (id, score)
+                       (SELECT fm.unique_file_id, MIN(fnfun.count / %s)
+                        FROM FileNameFilter_unique_name fnfun
+                        LEFT JOIN file_metadata fm
                         ON fnfun.file_name = fm.file_name
                         AND fnfun.unique_path_id = fm.unique_path_id
-                    WHERE not isnull(fm.unique_file_id)
-                    GROUP BY fm.unique_file_id
-                )
-            ON DUPLICATE KEY UPDATE score = score
-            """.format(max_count)
-        cursor.execute(query)
+                        WHERE not isnull(fm.unique_file_id)
+                        GROUP BY fm.unique_file_id)
+                       ON DUPLICATE KEY UPDATE score = score
+                       """, (max_count,))
         self.cnx.commit()
         later = time.time()
         #print "Scores updated in {} secs".format(later - now)
@@ -111,11 +129,11 @@ class FileNameFilter(RedwoodFilter):
         """usage: unique_names source_name"""
 
         data = self.get_unique_names(source)
-        
+
         if data is not None:
             for (file, dir) in data:
                 print "Unique file %s %s" % (file, dir)
-        
+
 
     def get_unique_names(self, source):
         """usage: unique_names source_name"""
@@ -124,41 +142,51 @@ class FileNameFilter(RedwoodFilter):
         self.build()
 
         cursor = self.cnx.cursor()
-        
+
         src_info = core.get_source_info(self.cnx, source)
-        
+
         if src_info is None:
             print "Error: Source {} not found".format(source)
             return
-            
-        query = """
-            SELECT fm.file_name, up.full_path 
-            FROM file_metadata fm 
-            LEFT JOIN FileNameFilter_unique_name fnfun
-                ON fnfun.file_name = fm.file_name
-                AND fnfun.unique_path_id = fm.unique_path_id
-            LEFT JOIN unique_path up 
-                ON up.id = fm.unique_path_id
-            WHERE not isnull(fm.unique_file_id) 
-                AND fnfun.count = 1
-                AND fm.source_id = {}
-        """.format(src_info.source_id)
 
-        cursor.execute(query)
+        #query = """
+        #    SELECT fm.file_name, up.full_path
+        #    FROM file_metadata fm
+        #    LEFT JOIN FileNameFilter_unique_name fnfun
+        #        ON fnfun.file_name = fm.file_name
+        #        AND fnfun.unique_path_id = fm.unique_path_id
+        #    LEFT JOIN unique_path up
+        #        ON up.id = fm.unique_path_id
+        #    WHERE not isnull(fm.unique_file_id)
+        #        AND fnfun.count = 1
+        #        AND fm.source_id = {}
+        #""".format(src_info.source_id)
+        cursor.execute("""
+                       SELECT fm.file_name, up.full_path
+                       FROM file_metadata fm
+                       LEFT JOIN FileNameFilter_unique_name fnfun
+                       ON fnfun.file_name = fm.file_name
+                       AND fnfun.unique_path_id = fm.unique_path_id
+                       LEFT JOIN unique_path up
+                       ON up.id = fm.unique_path_id
+                       WHERE not isnull(fm.unique_file_id)
+                       AND fnfun.count = 1
+                       AND fm.source_id = %s
+                       """, (src_info.source_id,))
         data = cursor.fetchall()
-                
+
         cursor.close()
         return data
 
     def run_survey(self, source_name):
-        
+
         resources = "resources"
         survey_file = "survey.html"
         survey_dir = "survey_{}_{}".format(self.name, source_name)
 
-        resource_dir = os.path.join(survey_dir, resources) 
+        resource_dir = os.path.join(survey_dir, resources)
         html_file = os.path.join(survey_dir, survey_file)
-        
+
         try:
             shutil.rmtree(survey_dir)
         except:
@@ -166,9 +194,9 @@ class FileNameFilter(RedwoodFilter):
 
         os.mkdir(survey_dir)
         os.mkdir(resource_dir)
-        
+
         results = self.get_unique_names(source_name)
-        
+
         with open(html_file, 'w') as f:
 
             f.write("""
@@ -177,7 +205,7 @@ class FileNameFilter(RedwoodFilter):
             <link href="../../../resources/css/style.css" rel="stylesheet" type="text/css">
             </head>
             <body>
-            <h2 class="redwood-title">FileNameFilter Snapshot</h2> 
+            <h2 class="redwood-title">FileNameFilter Snapshot</h2>
             """)
             f.write("<h3 class=\"redwood-header\">One Timers in Directories</h3>")
             f.write("<table border=\"1\" id=\"redwood-table\">")
