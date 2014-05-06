@@ -199,7 +199,13 @@ class SubInterpreterFilter(cmd.Cmd):
             ag.aggregate(filter_list)
 
     def do_run_survey(self, line):
-        '''[*] run_survey <source_name>\n\t|- runs the survey function for the given source\n\t |- if no source is provided run_survey processes all sources\n\t|-[source_name] - option name of source to process'''
+        '''
+        run_survey <source_name>
+            
+        runs the survey function for the given source
+        
+        [source_name] - option name of source to process
+        '''
 
 	args = shlex.split(line)
 	

@@ -171,27 +171,28 @@ def get_num_systems(cnx, os_name_or_id):
 
     :return the number of systems found or None if the os does not exist
     """
-    if isinstance(os_name_or_id, (int, long, float, complex)):
-        os_id = os_name_or_id
-    else:
-        os_id = "(SELECT DISTINCT os.id from os where os.name = \"{}\")".format(os_name_or_id)
-
+    
     cursor = cnx.cursor()
+    
 
-    #query = """
-    #    SELECT COUNT(media_source.id) FROM os
-    #    LEFT JOIN media_source ON os.id = media_source.os_id
-    #    WHERE os.id = {}
-    #    GROUP BY os.id
-    #""".format(os_id)
+    try: 
+        val = int(os_name_or_id)
 
-    cursor.execute("""
-                   SELECT COUNT(media_source.id) FROM os
-                   LEFT JOIN media_source ON os.id = media_source.os_id
-                   WHERE os.id = %s
-                   GROUP BY os.id
-                   """, (os_id,))
+        cursor.execute("""
+            SELECT COUNT(media_source.id) FROM os
+            LEFT JOIN media_source ON os.id = media_source.os_id
+            WHERE os.id = %s
+            GROUP BY os.id
+            """, (val,))
+
+    except Exception as e:
+        cursor.execute("""
+            SELECT COUNT(media_source.id) FROM os
+            LEFT JOIN media_source ON os.id = media_source.os_id
+            WHERE os.id = (SELECT DISTINCT os.id from os where os.name = %s) GROUP BY os.id""", (os_name_or_id,))
+    
     r = cursor.fetchone()
+
     if r is None:
         return None
 

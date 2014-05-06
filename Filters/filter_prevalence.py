@@ -200,10 +200,10 @@ class FilterPrevalence(RedwoodFilter):
 
         print '[+] Running \"Histogram by OS\"..."'
         cursor = self.cnx.cursor()
-
-
+        
         num_systems = core.get_num_systems(self.cnx, os_name)
 
+        print "NUM: {}".format(num_systems)
         if num_systems is None or num_systems == 0:
             print "Error: OS {} does not exist".format(os_name)
             return
