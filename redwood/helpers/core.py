@@ -94,8 +94,7 @@ def import_filters(path, cnx):
                 instance.cnx = cnx
                 filter_list.append(instance)
                 new_filters.append(instance)
-
-    print new_filters
+                print name
 
     return new_filters
 
