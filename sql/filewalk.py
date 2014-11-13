@@ -70,7 +70,7 @@ def hash_file(path, file_type):
     fd = None
     try:
         h = hashlib.sha1()
-        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NONBLOCK', 0))
         data = os.read(fd, BUFFER)
         while(len(data)>0):
             h.update(data)
